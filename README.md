@@ -2,7 +2,7 @@
 
 **版本 1.0.1** · Unity **2022.3.62f3 LTS** · **URP 14** 自定义渲染样例。
 
-在 URP Forward 下用独立 Shader / Compute / RenderFeature 演示多类效果，便于学习与复盘。
+在工作与学习中所使用和制作的各类unity效果留档。
 
 ---
 
