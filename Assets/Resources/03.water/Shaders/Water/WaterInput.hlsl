@@ -10,7 +10,7 @@ CBUFFER_END
 half _MaxDepth;
 half _MaxWaveHeight;
 int _DebugPass;
-half4 _VeraslWater_DepthCamParams; // x 水深相机高度，y 正交尺寸
+half4 _VeraslWater_DepthCamParams;
 float4x4 _InvViewProjection;
 
 SAMPLER(sampler_ScreenTextures_linear_clamp);
@@ -39,4 +39,4 @@ struct WaterSurfaceData
     half  foam;
 };
 
-#endif // WATER_INPUT_INCLUDED
+#endif

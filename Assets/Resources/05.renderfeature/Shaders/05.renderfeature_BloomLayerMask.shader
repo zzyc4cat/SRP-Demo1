@@ -1,9 +1,16 @@
-// ============================================================
-// CustomPP_BloomLayerMask.shader
-// 将指定 Layer 物体画成白色遮罩（黑底），供 Layer Bloom 提取使用。
-// ============================================================
 Shader "ZZY/05.renderfeature/BloomLayerMask"
 {
+    Properties
+    {
+        [Header(Depth)]
+        // 深度写入
+        [Enum(Off, 0, On, 1)] _ZWrite ("ZWrite", Float) = 0
+        // 深度测试
+        [Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("ZTest", Float) = 8
+        // 颜色通道遮罩
+        [Enum(None, 0, RGB, 7, RGBA, 15)] _ColorMask ("ColorMask", Float) = 7
+    }
+
     SubShader
     {
         Tags
@@ -15,10 +22,10 @@ Shader "ZZY/05.renderfeature/BloomLayerMask"
         {
             Name "BloomLayerMask"
             Tags { "LightMode" = "UniversalForward" }
-            ZWrite Off
-            ZTest Always
+            ZWrite [_ZWrite]
+            ZTest [_ZTest]
             Cull Off
-            ColorMask RGB
+            ColorMask [_ColorMask]
 
             HLSLPROGRAM
             #pragma vertex Vert
@@ -35,6 +42,7 @@ Shader "ZZY/05.renderfeature/BloomLayerMask"
                 float4 positionCS : SV_POSITION;
             };
 
+            // 遮罩顶点变换
             Varyings Vert(Attributes input)
             {
                 Varyings output;
@@ -42,6 +50,7 @@ Shader "ZZY/05.renderfeature/BloomLayerMask"
                 return output;
             }
 
+            // 输出白色遮罩
             float4 Frag(Varyings input) : SV_Target
             {
                 return float4(1, 1, 1, 1);

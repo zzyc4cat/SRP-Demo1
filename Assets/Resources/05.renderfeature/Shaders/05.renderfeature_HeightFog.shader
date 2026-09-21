@@ -1,22 +1,23 @@
-// ============================================================
-// CustomPP_HeightFog.shader
-// 效果：纯高度雾（沿世界 Y 轴，贴地浓、越高越稀）
-// 参数：
-//   _PPParams0 = (strength, baseHeight, heightFalloff, noiseStrength)
-//   _PPParams1 = (skyboxInfluence, 0, 0, 0)
-//   _PPColor   = fogColor
-// ============================================================
 Shader "ZZY/05.renderfeature/HeightFog"
 {
     Properties
     {
+        // 源颜色贴图
         _MainTex ("Source", 2D) = "white" {}
+
+        [Header(Depth)]
+        // 深度写入
+        [Enum(Off, 0, On, 1)] _ZWrite ("ZWrite", Float) = 0
+        // 深度测试
+        [Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("ZTest", Float) = 8
     }
 
     SubShader
     {
         Tags { "RenderPipeline" = "UniversalPipeline" }
-        ZWrite Off ZTest Always Cull Off
+        ZWrite [_ZWrite]
+        ZTest [_ZTest]
+        Cull Off
 
         Pass
         {
@@ -30,8 +31,10 @@ Shader "ZZY/05.renderfeature/HeightFog"
             float4 _PPParams1;
             float4 _PPColor;
 
+            // 沿世界高度的雾
             float4 Frag(PPVaryings i) : SV_Target
             {
+                // 重建世界坐标
                 float3 col = SampleSource(i.uv);
                 float rawDepth = SampleDepth01(i.uv);
                 float isSky = IsSkyPixel(rawDepth);
@@ -43,15 +46,15 @@ Shader "ZZY/05.renderfeature/HeightFog"
                 float noiseStrength = _PPParams0.w;
                 float skyInfluence = _PPParams1.x;
 
-                // 相对基准高度：地面最浓，向上指数衰减
+                // 贴地浓、向上变稀
                 float h = max(0.0, worldPos.y - baseHeight);
                 float heightFactor = exp(-heightFalloff * h);
 
-                // 噪声扰动高度雾边界
+                // 噪声扰动雾边界
                 float n = frac(sin(dot(i.uv, float2(12.9898, 78.233))) * 43758.5453);
                 heightFactor *= lerp(1.0, 0.75 + n * 0.5, noiseStrength);
 
-                // heightFactor∈(0,1]，雾量 = 强度 * 因子
+                // 天空影响并混合雾色
                 float fogAmount = saturate(strength * heightFactor);
                 fogAmount = lerp(fogAmount, skyInfluence, isSky * skyInfluence);
 

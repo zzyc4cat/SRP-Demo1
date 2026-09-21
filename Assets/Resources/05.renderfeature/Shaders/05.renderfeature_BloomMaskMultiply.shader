@@ -1,20 +1,25 @@
-// ============================================================
-// CustomPP_BloomMaskMultiply.shader
-// extract = scene(_MainTex) * mask(_MaskTex)
-// 顶点：兼容 RenderingUtils.fullscreenMesh（裁剪空间四边形）
-// ============================================================
 Shader "ZZY/05.renderfeature/BloomMaskMultiply"
 {
     Properties
     {
+        // 源颜色贴图
         _MainTex ("Source", 2D) = "white" {}
+        // 辉光遮罩
         _MaskTex ("Mask", 2D) = "black" {}
+
+        [Header(Depth)]
+        // 深度写入
+        [Enum(Off, 0, On, 1)] _ZWrite ("ZWrite", Float) = 0
+        // 深度测试
+        [Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("ZTest", Float) = 8
     }
 
     SubShader
     {
         Tags { "RenderPipeline" = "UniversalPipeline" }
-        ZWrite Off ZTest Always Cull Off
+        ZWrite [_ZWrite]
+        ZTest [_ZTest]
+        Cull Off
 
         Pass
         {
@@ -41,21 +46,22 @@ Shader "ZZY/05.renderfeature/BloomMaskMultiply"
                 float2 uv : TEXCOORD0;
             };
 
+            // 全屏网格顶点
             Varyings Vert(Attributes input)
             {
                 Varyings output;
-                // RenderingUtils.fullscreenMesh 顶点已在裁剪空间
+                // 使用裁剪空间四边形
                 output.positionCS = float4(input.positionOS.xy, 0.0, 1.0);
                 output.uv = input.uv;
-                // 某些平台需要翻转 UV
                 #if UNITY_UV_STARTS_AT_TOP
-                // fullscreenMesh UV 通常已正确；保留直通
                 #endif
                 return output;
             }
 
+            // 场景色乘遮罩
             float4 Frag(Varyings i) : SV_Target
             {
+                // 用遮罩提取辉光区域
                 float3 c = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, i.uv).rgb;
                 float m = SAMPLE_TEXTURE2D(_MaskTex, sampler_MaskTex, i.uv).r;
                 return float4(c * m, 1);

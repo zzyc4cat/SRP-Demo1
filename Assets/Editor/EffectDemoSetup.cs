@@ -293,10 +293,8 @@ public static class EffectDemoSetup
         // --- 护盾 Shield ---
         var shield = CreateMat("Shield", "ZZY/06.effect/Shield");
         shield.SetTexture("_FlowMap", hex);
-        shield.SetTexture("_NoiseMap", noise);
         var blink = LoadTex(TexFolder + "/EffectBlinkChecker.png");
         if (blink != null) shield.SetTexture("_BlinkMap", blink);
-        shield.SetFloat("_DissolveThreshold", -1f);
 
         EditorUtility.SetDirty(translucent);
         EditorUtility.SetDirty(pipe);
@@ -676,7 +674,10 @@ public static class EffectDemoSetup
         shield.tag = "CollisionShield";
         shield.transform.localScale = Vector3.one * 1.6f;
         foreach (var r in shield.GetComponentsInChildren<Renderer>())
+        {
             r.sharedMaterial = mat;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
 
         foreach (var c in shield.GetComponentsInChildren<Collider>())
             Object.DestroyImmediate(c);

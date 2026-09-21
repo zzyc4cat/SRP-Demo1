@@ -1,80 +1,81 @@
-// =============================================================================
-// ZZY/07.PBR_object/glTFPBRTransmission
-// KHR_materials_transmission 风格透射 BRDF（玻璃 / 液体）
-//
-// 与不透明版共用 Library/glTFPBRCommon.hlsl。
-// 场景测试：TransmissionRoughnessTest
-//   - 透射度 × 粗糙度矩阵：清晰折射 ↔ 磨砂透射
-//   - 体积衰减：液体染色（Beer-Lambert）
-//   - 屏幕空间折射：透过球体看到背后棋盘墙
-// =============================================================================
 Shader "ZZY/07.PBR_object/glTFPBRTransmission"
 {
     Properties
     {
-        // ---------------------------------------------------------------------
-        // [属性组] BaseColor — 透射时同时作为体积染色的底色
-        // ---------------------------------------------------------------------
         [Header(glTF Base Color)]
+        // 基础色贴图
         _BaseMap ("BaseColor Map", 2D) = "white" {}
+        // 基础色系数
         [HDR] _BaseColorFactor ("BaseColor Factor", Color) = (1, 1, 1, 0.05)
 
-        // ---------------------------------------------------------------------
-        // [属性组] Metallic-Roughness
-        // 透射体通常 metallic=0；roughness 控制透射模糊（磨砂玻璃）
-        // ---------------------------------------------------------------------
         [Header(glTF Metallic Roughness)]
+        // 金属粗糙度贴图
         [NoScaleOffset] _MetallicRoughnessMap ("MetallicRoughness (G=Rough B=Metal)", 2D) = "white" {}
+        // 金属度
         _MetallicFactor ("Metallic Factor", Range(0, 1)) = 0
+        // 粗糙度
         _RoughnessFactor ("Roughness Factor", Range(0, 1)) = 0.05
 
-        // ---------------------------------------------------------------------
-        // [属性组] Normal — 折射方向随法线扰动（水面波纹感）
-        // ---------------------------------------------------------------------
         [Header(glTF Normal)]
+        // 法线贴图
         [NoScaleOffset] _BumpMap ("Normal Map", 2D) = "bump" {}
+        // 法线强度
         _BumpScale ("Normal Scale", Range(0, 4)) = 1
 
         [Header(glTF Occlusion)]
+        // 遮蔽贴图
         [NoScaleOffset] _OcclusionMap ("Occlusion Map (R)", 2D) = "white" {}
+        // 遮蔽强度
         _OcclusionStrength ("Occlusion Strength", Range(0, 1)) = 1
 
         [Header(glTF Emission)]
+        // 自发光贴图
         [NoScaleOffset] _EmissionMap ("Emission Map", 2D) = "white" {}
+        // 自发光颜色
         [HDR] _EmissionColor ("Emission Factor", Color) = (0, 0, 0, 1)
 
         [Header(Lighting Scales)]
+        // 高光强度
         _SpecularIntensity ("Specular Intensity", Range(0, 4)) = 1
+        // 直接光漫反射
         _DirectDiffuseIntensity ("Direct Diffuse", Range(0, 4)) = 1
+        // 直接光高光
         _DirectSpecularIntensity ("Direct Specular", Range(0, 4)) = 1
+        // 环境光强度
         _EnvironmentIntensity ("Environment Intensity", Range(0, 4)) = 1
 
-        // ---------------------------------------------------------------------
-        // [属性组] Transmission KHR — 本 Shader 的核心效果旋钮
-        // TransmissionFactor : 透多少
-        // Thickness/Attenuation : 染多深（液体）
-        // IOR                 : 折射弯折程度
-        // RefractionStrength  : 屏幕折射偏移
-        // RoughnessBoost      : 额外磨砂
-        // ---------------------------------------------------------------------
         [Header(Transmission KHR)]
+        // 透射强度
         _TransmissionFactor ("Transmission Factor", Range(0, 1)) = 1
+        // 体积厚度
         _ThicknessFactor ("Thickness", Range(0, 5)) = 1.2
+        // 体积衰减颜色
         _AttenuationColor ("Attenuation Color", Color) = (0.8, 0.95, 0.9, 1)
+        // 衰减距离
         _AttenuationDistance ("Attenuation Distance", Float) = 1.5
+        // 折射率
         _IOR ("IOR", Range(1, 2.5)) = 1.5
+        // 屏幕折射强度
         _RefractionStrength ("Screen Refraction Strength", Range(0, 0.2)) = 0.05
+        // 透射粗糙加强
         _TransmissionRoughnessBoost ("Transmission Roughness Boost", Range(0, 1)) = 0
 
         [Header(Debug)]
+        // 调试模式
         _DebugMode ("Debug Mode", Float) = 0
 
+        // 剔除模式
         [Enum(UnityEngine.Rendering.CullMode)] _Cull ("Cull", Float) = 2
+
+        [Header(Depth)]
+        // 深度写入
+        [Enum(Off, 0, On, 1)] _ZWrite ("ZWrite", Float) = 0
+        // 深度测试
+        [Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("ZTest", Float) = 4
     }
 
     SubShader
     {
-        // Transparent 队列：先画不透明（棋盘墙），再画玻璃，才能折射到背后
         Tags
         {
             "RenderPipeline" = "UniversalPipeline"
@@ -83,21 +84,14 @@ Shader "ZZY/07.PBR_object/glTFPBRTransmission"
             "IgnoreProjector" = "True"
         }
 
-        // =====================================================================
-        // Pass: ForwardTransmission
-        // 效果：
-        //   - ZWrite Off + One OneMinusSrcAlpha：正确叠在场景之上
-        //   - 库内计算：表面高光仍在 + 透射折射 + 体积衰减
-        //   - GLTF_USE_OPAQUE_TEXTURE：启用屏幕空间折射采样
-        // =====================================================================
         Pass
         {
             Name "ForwardTransmission"
             Tags { "LightMode" = "UniversalForward" }
             Cull [_Cull]
-            ZWrite Off
-            ZTest LEqual
-            Blend One OneMinusSrcAlpha // 预乘 alpha 友好
+            ZWrite [_ZWrite]
+            ZTest [_ZTest]
+            Blend One OneMinusSrcAlpha
 
             HLSLPROGRAM
             #pragma target 3.5
@@ -108,7 +102,6 @@ Shader "ZZY/07.PBR_object/glTFPBRTransmission"
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
             #pragma multi_compile_fog
 
-            // 开启库内屏幕折射分支（需 URP Opaque Texture）
             #define GLTF_USE_OPAQUE_TEXTURE 1
             #include "Library/glTFPBRCommon.hlsl"
 
@@ -127,16 +120,15 @@ Shader "ZZY/07.PBR_object/glTFPBRTransmission"
                 float3 positionWS : TEXCOORD1;
                 float3 normalWS   : TEXCOORD2;
                 float4 tangentWS  : TEXCOORD3;
-                float4 screenPos  : TEXCOORD4; // 屏幕折射 UV
+                float4 screenPos  : TEXCOORD4;
                 float  fogFactor  : TEXCOORD5;
             };
 
-            // -----------------------------------------------------------------
-            // [顶点] 与不透明版相同，额外输出 screenPos 供折射采样
-            // -----------------------------------------------------------------
+            // 透射顶点变换
             Varyings Vert(Attributes input)
             {
                 Varyings o;
+                // 变换位置、法线与切线
                 VertexPositionInputs posInputs = GetVertexPositionInputs(input.positionOS.xyz);
                 VertexNormalInputs nrmInputs = GetVertexNormalInputs(input.normalOS, input.tangentOS);
 
@@ -146,19 +138,17 @@ Shader "ZZY/07.PBR_object/glTFPBRTransmission"
                 o.normalWS = nrmInputs.normalWS;
                 real sign = input.tangentOS.w * GetOddNegativeScale();
                 o.tangentWS = float4(nrmInputs.tangentWS, sign);
+
+                // 传递屏幕坐标供折射采样
                 o.screenPos = ComputeScreenPos(o.positionCS);
                 o.fogFactor = ComputeFogFactor(o.positionCS.z);
                 return o;
             }
 
-            // -----------------------------------------------------------------
-            // [片元]
-            // 1) GltfEvaluateLighting：直接光高光 + IBL + 透射折射/体积衰减
-            // 2) rgb *= a ：预乘，配合 Blend One OneMinusSrcAlpha
-            // 3) 雾效
-            // -----------------------------------------------------------------
+            // 透射片元着色
             half4 Frag(Varyings i) : SV_Target
             {
+                // 填充光照输入
                 GltfInputData input;
                 input.uv = i.uv;
                 input.positionWS = i.positionWS;
@@ -169,7 +159,7 @@ Shader "ZZY/07.PBR_object/glTFPBRTransmission"
 
                 half4 col = GltfEvaluateLighting(input);
 
-                // 预乘 alpha：透明边缘与背景正确插值
+                // 预乘透明度并混合雾
                 col.rgb *= col.a;
                 col.rgb = MixFog(col.rgb, i.fogFactor);
                 return col;

@@ -2,17 +2,29 @@ Shader "ZZY/03.water/Caustics"
 {
     Properties
     {
+        // 焦散平铺尺寸
         _Size("Size", Float) = 0.5
+        // 焦散贴图
         [NoScaleOffset]_CausticMap("Caustics", 2D) = "white" {}
+        // 水面高度
         _WaterLevel("WaterLevel", Float) = 0
+        // 水下淡出距离
         _BlendDistance("BlendDistance", Float) = 3
 
+        // 源混合因子
         [HideInInspector] _SrcBlend("__src", Float) = 2.0
+        // 目标混合因子
         [HideInInspector] _DstBlend("__dst", Float) = 0.0
+        [Header(Depth)]
+        // 深度写入，默认关闭
+        [Enum(Off, 0, On, 1)] _ZWrite ("ZWrite", Float) = 0
+        // 深度测试，默认小于等于
+        [Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("ZTest", Float) = 4
     }
     SubShader
     {
-        ZWrite Off
+        ZWrite [_ZWrite]
+        ZTest [_ZTest]
 
         Pass
         {
@@ -50,10 +62,11 @@ Shader "ZZY/03.water/Caustics"
             half _BlendDistance;
             half4x4 _MainLightDir;
 
-            // 用深度和逆投影还原世界坐标。反向 Z 时翻转矩阵对应行
+            // 用深度和逆投影还原世界坐标
             float3 ReconstructWorldPos(half2 screenPos, float depth)
             {
                 float4x4 mat = UNITY_MATRIX_I_VP;
+                // 反向深度时翻转矩阵对应行
 #if UNITY_REVERSED_Z
                 mat._12_22_32_42 = -mat._12_22_32_42;              
 #else
@@ -64,13 +77,14 @@ Shader "ZZY/03.water/Caustics"
                 return worldPos;
             }
 
-            // 沿主光方向铺焦散 UV，再加一点噪声偏移
+            // 沿主光方向铺焦散坐标，再加一点噪声偏移
             float2 CausticUVs(float2 rawUV, float2 offset)
             {
                 float2 uv = rawUV * _Size;
                 return uv + offset * 0.1;
             }
 
+            // 顶点：输出裁剪坐标和屏幕坐标
             Varyings vert (Attributes input)
             {
                 Varyings output;
@@ -82,11 +96,12 @@ Shader "ZZY/03.water/Caustics"
                 return output;
             }
             
+            // 片元：按水下位置采样焦散并淡出
             real4 frag (Varyings input) : SV_Target
             {
                 float4 screenPos = input.screenpos / input.screenpos.w;
                 
-                // 场景深度还原水下位置，再转到主光空间采样焦散
+                // 场景深度还原水下位置，再转到主光空间
                 real depth = SampleSceneDepth(screenPos.xy);
                 
                 Light MainLight = GetMainLight();
@@ -101,12 +116,13 @@ Shader "ZZY/03.water/Caustics"
 	            float time = _Time.x;
 #endif
 
-                // 表面贴图的 W 当噪声，打散焦散 UV
+                // 贴图的透明通道当噪声，打散焦散坐标
                 float2 uv = WorldPos.xz * 0.025 + time * 0.25;
                 float waveOffset = SAMPLE_TEXTURE2D(_CausticMap, sampler_CausticMap, uv).w - 0.5;
 
                 float2 causticUV = CausticUVs(LightUVs.xy, waveOffset);
 
+                // 离水面越远，采样越模糊
                 float LodLevel = abs(WorldPos.y - _WaterLevel) * 4 / _BlendDistance;
                 float4 A = SAMPLE_TEXTURE2D_LOD(_CausticMap, sampler_CausticMap, causticUV + time, LodLevel);
                 float4 B = SAMPLE_TEXTURE2D_LOD(_CausticMap, sampler_CausticMap, causticUV * 2.0, LodLevel);
@@ -118,13 +134,13 @@ Shader "ZZY/03.water/Caustics"
                 half lowerMask = saturate((WorldPos.y - _WaterLevel) / _BlendDistance + _BlendDistance);
                 CausticsDriver *= min(upperMask, lowerMask);
                 
-                // 用贴图不同通道假装色散
+                // 用不同通道错开颜色，做出色散
                 half3 Caustics = CausticsDriver * half3(A.w * 0.5, B.w * 0.75, B.x) * MainLight.color;
                 
 #ifdef _DEBUG
                 return real4(Caustics, 1.0);
 #endif
-                // 加 1 后再乘目标颜色，亮处变亮、暗处保持
+                // 加一后再乘目标颜色，亮处更亮
                 return real4(Caustics + 1.0, 1.0);
             }
             ENDHLSL

@@ -1,22 +1,33 @@
-// Unity built-in shader source. Copyright (c) 2016 Unity Technologies. MIT license (see license.txt)
-// 程序化天空。沿视线积分瑞利散射得到天空色，米氏散射得到太阳光晕，地平线以下换成地面色。
-
 Shader "ZZY/03.water/ProceduralSkybox" {
 Properties {
+    // 太阳圆盘质量
     [KeywordEnum(None, Simple, High Quality)] _SunDisk ("Sun", Int) = 2
+    // 太阳尺寸
     _SunSize ("Sun Size", Range(0,1)) = 0.04
+    // 太阳边缘收敛
     _SunSizeConvergence("Sun Size Convergence", Range(1,10)) = 5
 
+    // 大气厚度
     _AtmosphereThickness ("Atmosphere Thickness", Range(0,5)) = 1.0
+    // 天空染色
     _SkyTint ("Sky Tint", Color) = (.5, .5, .5, 1)
+    // 地面颜色
     _GroundColor ("Ground", Color) = (.369, .349, .341, 1)
 
+    // 曝光
     _Exposure("Exposure", Range(0, 8)) = 1.3
+    [Header(Depth)]
+    // 深度写入，默认关闭
+    [Enum(Off, 0, On, 1)] _ZWrite ("ZWrite", Float) = 0
+    // 深度测试，默认小于等于
+    [Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("ZTest", Float) = 4
 }
 
 SubShader {
     Tags { "Queue"="Background" "RenderType"="Background" "PreviewType"="Skybox" }
-    Cull Off ZWrite Off
+    Cull Off
+    ZWrite [_ZWrite]
+    ZTest [_ZTest]
 
     Pass {
 
@@ -48,7 +59,6 @@ SubShader {
         #define LINEAR_2_LINEAR(color) color
     #endif
 
-        // 三通道散射波长，天空色偏由它和 _SkyTint 决定
         static const float3 kDefaultScatteringWavelength = float3(.65, .57, .475);
         static const float3 kVariableRangeForScatteringWavelength = float3(.15, .15, .15);
 
@@ -75,14 +85,13 @@ SubShader {
         static const float kScale = 1.0 / (OUTER_RADIUS - 1.0);
         static const float kScaleDepth = 0.25;
         static const float kScaleOverScaleDepth = (1.0 / (OUTER_RADIUS - 1.0)) / 0.25;
-        static const float kSamples = 2.0; // 采样次数已手动展开，不要改回循环
+        static const float kSamples = 2.0;
 
         #define MIE_G (-0.990)
         #define MIE_G2 0.9801
 
         #define SKY_GROUND_THRESHOLD 0.02
 
-        // 太阳盘：无、简单圆盘、带米氏相位的高质量
         #define SKYBOX_SUNDISK_NONE 0
         #define SKYBOX_SUNDISK_SIMPLE 1
         #define SKYBOX_SUNDISK_HQ 2
@@ -105,11 +114,12 @@ SubShader {
         #endif
     #endif
 
-        // 瑞利相位：视线越背对太阳，天空越亮
+        // 瑞利相位，视线越背对太阳天空越亮
         half getRayleighPhase(half eyeCos2)
         {
             return 0.75 + 0.75*eyeCos2;
         }
+        // 由光线和视线夹角计算瑞利相位
         half getRayleighPhase(half3 light, half3 ray)
         {
             half eyeCos = dot(light, ray);
@@ -128,14 +138,14 @@ SubShader {
             float4  pos             : SV_POSITION;
 
         #if SKYBOX_SUNDISK == SKYBOX_SUNDISK_HQ
-            float3  vertex          : TEXCOORD0; // 高质量太阳要在片元里重算射线
+            float3  vertex          : TEXCOORD0;
         #elif SKYBOX_SUNDISK == SKYBOX_SUNDISK_SIMPLE
             half3   rayDir          : TEXCOORD0;
         #else
-            half    skyGroundFactor : TEXCOORD0; // 无太阳时只需要天地分界
+            half    skyGroundFactor : TEXCOORD0;
         #endif
 
-            half3   groundColor     : TEXCOORD1; // 顶点里算好的地面色
+            half3   groundColor     : TEXCOORD1;
             half3   skyColor        : TEXCOORD2;
 
         #if SKYBOX_SUNDISK != SKYBOX_SUNDISK_NONE
@@ -146,12 +156,14 @@ SubShader {
         };
 
 
+        // 大气密度随入射角的经验缩放
         float scale(float inCos)
         {
             float x = 1.0 - inCos;
             return 0.25 * exp(-0.00287 + x*(0.459 + x*(3.83 + x*(-6.80 + x*5.25))));
         }
 
+        // 顶点：沿视线积分大气，得到天空色、地面色和太阳色
         v2f vert (appdata_t v)
         {
             v2f OUT;
@@ -161,6 +173,7 @@ SubShader {
             VertexPositionInputs vertexPositions = GetVertexPositionInputs(v.vertex.xyz);
             OUT.pos = vertexPositions.positionCS;
 
+            // 天空染色决定三通道散射波长
             float3 kSkyTintInGammaSpace = COLOR_2_GAMMA(abs(_SkyTint));
             float3 kScatteringWavelength = lerp (
                 kDefaultScatteringWavelength-kVariableRangeForScatteringWavelength,
@@ -173,7 +186,7 @@ SubShader {
 
             float3 cameraPos = float3(0,kInnerRadius + kCameraHeight,0);
 
-            // 从大气球心射向顶点，长度就是穿过大气的距离
+            // 从大气球心射向顶点
             float3 eyeRay = normalize(mul((float3x3)unity_ObjectToWorld, v.vertex.xyz));
 
             float far = 0.0;
@@ -183,7 +196,7 @@ SubShader {
 
             if(eyeRay.y >= 0.0)
             {
-                // 天空：射线与外层大气球的交点
+                // 天空射线与外层大气球求交
                 far = sqrt(kOuterRadius2 + kInnerRadius2 * eyeRay.y * eyeRay.y - kInnerRadius2) - kInnerRadius * eyeRay.y;
 
                 float3 pos = cameraPos + far * eyeRay;
@@ -227,13 +240,13 @@ SubShader {
 
 
 
-                // cIn 是瑞利天空色，cOut 是米氏太阳色
+                // 瑞利项是天空色，米氏项是太阳色
                 cIn = frontColor * (kInvWavelength * kKrESun);
                 cOut = frontColor * kKmESun;
             }
             else
             {
-                // 地面：射线打到内球，散射更短
+                // 地面射线打到内球，路径更短
                 far = (-kCameraHeight) / (min(-0.001, eyeRay.y));
 
                 float3 pos = cameraPos + far * eyeRay;
@@ -252,7 +265,7 @@ SubShader {
                 float3 sampleRay = eyeRay * sampleLength;
                 float3 samplePoint = cameraPos + sampleRay * 0.5;
 
-                // 地面只采一次，避免临时寄存器超限
+                // 地面只采一次
                 float3 frontColor = float3(0.0, 0.0, 0.0);
                 float3 attenuate;
                 {
@@ -276,12 +289,12 @@ SubShader {
             OUT.skyGroundFactor = -eyeRay.y / SKY_GROUND_THRESHOLD;
         #endif
 
-            // 曝光在顶点里乘好。天空色再乘瑞利相位
+            // 曝光乘到顶点色上，天空再乘瑞利相位
             OUT.groundColor = _Exposure * (cIn + COLOR_2_LINEAR(_GroundColor) * cOut);
             OUT.skyColor    = _Exposure * (cIn * getRayleighPhase(mainLight.direction, -eyeRay));
 
         #if SKYBOX_SUNDISK != SKYBOX_SUNDISK_NONE
-            // 太阳亮度跟主光走，但压住过暗，避免 LDR 下太阳消失
+            // 太阳亮度跟随主光，并避免过暗时消失
             half lightColorIntensity = clamp(length(mainLight.color), 0.25, 1);
             #if SKYBOX_SUNDISK == SKYBOX_SUNDISK_SIMPLE
                 OUT.sunColor    = kSimpleSundiskIntensityFactor * saturate(cOut * kSunScale) * mainLight.color / lightColorIntensity;
@@ -303,7 +316,7 @@ SubShader {
         }
 
 
-        // 米氏相位：太阳方向附近形成光晕，太阳尺寸越大越散
+        // 米氏相位，在太阳附近形成光晕
         half getMiePhase(half eyeCos, half eyeCos2)
         {
             half temp = 1.0 + MIE_G2 - 2.0 * MIE_G * eyeCos;
@@ -330,13 +343,14 @@ SubShader {
         #endif
         }
 
+        // 片元：按地平线混合天空和地面，再叠加太阳
         half4 frag (v2f IN) : SV_Target
         {
             half3 col = half3(0.0, 0.0, 0.0);
 
             Light mainLight = GetMainLight();
 
-        // y 大于 0 偏地面，小于 0 偏天空，中间是地平线
+        // 大于零偏地面，小于零偏天空
         #if SKYBOX_SUNDISK == SKYBOX_SUNDISK_HQ
             half3 ray = normalize(mul((float3x3)unity_ObjectToWorld, IN.vertex));
             half y = ray.y / SKY_GROUND_THRESHOLD;
@@ -347,10 +361,11 @@ SubShader {
             half y = IN.skyGroundFactor;
         #endif
 
-            // 天空色和地面色按地平线混合，太阳只加在天空一侧
+            // 天空色和地面色按地平线混合
             col = lerp(IN.skyColor, IN.groundColor, saturate(y));
 
         #if SKYBOX_SUNDISK != SKYBOX_SUNDISK_NONE
+            // 太阳只加在天空一侧
             if(y < 0.0)
             {
                 col += IN.sunColor * calcSunAttenuation(mainLight.direction, -ray);

@@ -5,12 +5,13 @@
 
 #define SHADOW_ITERATIONS 4
 
+// 掠射角更大的菲涅尔反射权重
 half CalculateFresnelTerm(half3 normalWS, half3 viewDirectionWS)
 {
     return saturate(pow(1.0 - dot(normalWS, viewDirectionWS), 5));
 }
 
-// 顶点光和雾。返回值 x 是雾，yzw 是顶点光
+// 顶点光，返回值第一个分量是雾
 half4 VertexLightingAndFog(half3 normalWS, half3 posWS, half3 clipPos)
 {
     half3 vertexLight = VertexLighting(posWS, normalWS);
@@ -18,11 +19,12 @@ half4 VertexLightingAndFog(half3 normalWS, half3 posWS, half3 clipPos)
     return half4(fogFactor, vertexLight);
 }
 
-// 移动端近似的 GGX 高光，粗糙度来自水面材质
+// 移动端近似的高光，粗糙度来自水面
 half3 Highlights(half3 positionWS, half roughness, half3 normalWS, half3 viewDirectionWS)
 {
     Light mainLight = GetMainLight();
 
+    // 近似几何项，得到高光亮度
     half roughness2 = roughness * roughness;
     half3 halfDir = SafeNormalize(mainLight.direction + viewDirectionWS);
     half NoH = saturate(dot(normalize(normalWS), halfDir));
@@ -30,6 +32,7 @@ half3 Highlights(half3 positionWS, half roughness, half3 normalWS, half3 viewDir
     half d = NoH * NoH * (roughness2 - 1.h) + 1.0001h;
     half LoH2 = LoH * LoH;
     half specularTerm = roughness2 / ((d * d) * max(0.1h, LoH2) * (roughness + 0.5h) * 4);
+    // 移动端把高光压进有限范围
 #if defined (SHADER_API_MOBILE)
     specularTerm = specularTerm - HALF_MIN;
     specularTerm = clamp(specularTerm, 0.0, 5.0);
@@ -37,7 +40,7 @@ half3 Highlights(half3 positionWS, half roughness, half3 normalWS, half3 viewDir
     return specularTerm * mainLight.color * mainLight.distanceAttenuation;
 }
 
-// 沿视线抖动多次采样阴影图，水深越大抖动越开
+// 沿视线抖动多次取阴影，水越深抖得越开
 half SoftShadows(float3 screenUV, float3 positionWS, half3 viewDir, half depth)
 {
 #if _MAIN_LIGHT_SHADOWS
@@ -47,6 +50,7 @@ half SoftShadows(float3 screenUV, float3 positionWS, half3 viewDir, half depth)
 	float loopDiv = 1.0 / SHADOW_ITERATIONS;
 	half depthFrac = depth * loopDiv;
 	half3 lightOffset = -viewDir * depthFrac;
+	// 用抖动图错开采样点，再平均阴影
 	for (uint i = 0u; i < SHADOW_ITERATIONS; ++i)
     {
 #ifndef _STATIC_SHADER
@@ -63,18 +67,21 @@ half SoftShadows(float3 screenUV, float3 positionWS, half3 viewDir, half depth)
 #endif
 }
 
-// 三种反射：Cubemap、最近反射探针、平面反射贴图。平面反射会用法线偏移 UV
+// 立方体贴图、反射探针或平面反射
 half3 SampleReflections(half3 normalWS, half3 viewDirectionWS, half2 screenUV, half roughness)
 {
     half3 reflection = 0;
     half2 refOffset = 0;
 
+    // 立方体贴图反射
 #if _REFLECTION_CUBEMAP
     half3 reflectVector = reflect(-viewDirectionWS, normalWS);
     reflection = SAMPLE_TEXTURECUBE(_CubemapTexture, sampler_CubemapTexture, reflectVector).rgb;
+    // 最近的反射探针
 #elif _REFLECTION_PROBES
     half3 reflectVector = reflect(-viewDirectionWS, normalWS);
     reflection = GlossyEnvironmentReflection(reflectVector, 0, 1);
+    // 平面反射，用法线把采样位置错开
 #elif _REFLECTION_PLANARREFLECTION
 
     float2 p11_22 = float2(unity_CameraInvProjection._11, unity_CameraInvProjection._22) * 10;
@@ -89,4 +96,4 @@ half3 SampleReflections(half3 normalWS, half3 viewDirectionWS, half2 screenUV, h
     return reflection;
 }
 
-#endif // WATER_LIGHTING_INCLUDED
+#endif

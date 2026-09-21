@@ -1,70 +1,95 @@
-// =============================================================================
-// ZZY/03.gpu_FFT_Ocean/FFTOcean — URP Forward 海面着色（gasgiant / Tessendorf 三频带 FFT）
-// -----------------------------------------------------------------------------
-// 输入：每级联 Displacement / Derivatives / Turbulence（由 Compute 管线填充）
-// 效果分段：
-//   [Vertex]     XYZ 位移 + LOD 级联权重 + 大浪偏置（供 SSS / 浪尖泡沫）
-//   [Depth]      场景深度 → 深浅水色 / Beer 吸收 / 屏幕折射
-//   [Lighting]   Fresnel + 环境反射 + Blinn 高光 + SSS
-//   [Whitecaps]  Tessendorf Jacobian 折叠白沫 + 波峰高度 + 四方连续噪声絮状
-// =============================================================================
 Shader "ZZY/03.gpu_FFT_Ocean/FFTOcean"
 {
     Properties
     {
-        // ----- [Albedo] 深浅水色 / SSS 色 -----
         [Header(Colors)]
+        // 浅水颜色
         _OceanColorShallow ("Shallow", Color) = (0.40, 0.78, 0.72, 1)
+        // 中等水深颜色
         _OceanColorMid ("Mid", Color) = (0.04, 0.38, 0.52, 1)
+        // 深水颜色
         _OceanColorDeep ("Deep", Color) = (0.01, 0.10, 0.26, 1)
+        // 次表面颜色
         _SSSColor ("SSS Color", Color) = (0.20, 0.75, 0.70, 1)
 
-        // ----- [Depth] Beer 吸收与透明度 -----
         [Header(Depth)]
+        // 浅水过渡距离
         _ShallowDistance ("Shallow Distance", Range(0.1, 20)) = 1.5
+        // 深水过渡距离
         _DeepDistance ("Deep Distance", Range(1, 80)) = 18
+        // 水体吸收强度
         _Absorption ("Absorption", Range(0.1, 8)) = 1.4
+        // 基础不透明度
         _Opacity ("Base Opacity", Range(0, 1)) = 0.92
 
-        // ----- [Lighting] 高光 / Fresnel / 天空 / SSS / LOD -----
         [Header(Lighting)]
+        // 高光强度
         _SpecularIntensity ("Specular", Range(0, 8)) = 2.5
+        // 高光锐度
         _Gloss ("Gloss", Range(8, 512)) = 180
+        // 菲涅尔幂
         _FresnelPower ("Fresnel Power", Range(1, 8)) = 5
+        // 菲涅尔偏移
         _FresnelBias ("Fresnel Bias", Range(0, 0.5)) = 0.04
+        // 天空反射强度
         _EnvIntensity ("Sky Reflection", Range(0, 2)) = 0.75
+        // 次表面强度
         _SSSIntensity ("SSS Intensity", Range(0, 3)) = 1.1
+        // 次表面收束
         _SSSPower ("SSS Power", Range(1, 16)) = 4
+        // 级联随距离衰减的缩放
         _LOD_scale ("Cascade LOD Scale", Range(0.5, 20)) = 8
 
-        // ----- [Whitecaps] Jacobian 阈值 + 波峰 + 絮状噪声 -----
         [Header(Foam Whitecaps)]
+        // 泡沫颜色
         _FoamColor ("Foam Color", Color) = (0.97, 0.99, 1.0, 1)
+        // 雅可比泡沫阈值
         _FoamBias ("Jacobian Foam Bias", Range(0, 7)) = 2.85
+        // 泡沫强度
         _FoamScale ("Foam Intensity", Range(0, 8)) = 1.35
+        // 波峰泡沫
         _CrestFoam ("Crest Peak Foam", Range(0, 4)) = 1.6
+        // 岸线接触泡沫
         _ContactFoam ("Contact Foam", Range(0, 3)) = 0.2
+        // 泡沫噪声贴图
         _FoamNoise ("Foam Noise", 2D) = "white" {}
+        // 泡沫噪声缩放
         _FoamNoiseScale ("Foam Noise Scale", Range(0.01, 2)) = 0.08
 
-        // ----- [Refraction] 屏幕空间折射强度 -----
         [Header(Refraction)]
+        // 屏幕折射强度
         _RefractionStrength ("Refraction", Range(0, 0.5)) = 0.12
 
-        // ----- [Cascades] 由 FFTOceanSimulator 每帧绑定 -----
         [Header(Cascades Hidden)]
+        // 第一级联位移
         [HideInInspector] _Displacement_c0 ("Disp0", 2D) = "black" {}
+        // 第一级联导数
         [HideInInspector] _Derivatives_c0 ("Der0", 2D) = "black" {}
+        // 第一级联湍流
         [HideInInspector] _Turbulence_c0 ("Turb0", 2D) = "white" {}
+        // 第二级联位移
         [HideInInspector] _Displacement_c1 ("Disp1", 2D) = "black" {}
+        // 第二级联导数
         [HideInInspector] _Derivatives_c1 ("Der1", 2D) = "black" {}
+        // 第二级联湍流
         [HideInInspector] _Turbulence_c1 ("Turb1", 2D) = "white" {}
+        // 第三级联位移
         [HideInInspector] _Displacement_c2 ("Disp2", 2D) = "black" {}
+        // 第三级联导数
         [HideInInspector] _Derivatives_c2 ("Der2", 2D) = "black" {}
+        // 第三级联湍流
         [HideInInspector] _Turbulence_c2 ("Turb2", 2D) = "white" {}
+        // 第一级联波长
         [HideInInspector] _LengthScale0 ("Len0", Float) = 250
+        // 第二级联波长
         [HideInInspector] _LengthScale1 ("Len1", Float) = 17
+        // 第三级联波长
         [HideInInspector] _LengthScale2 ("Len2", Float) = 5
+        [Header(Depth)]
+        // 深度写入，默认关闭
+        [Enum(Off, 0, On, 1)] _ZWrite ("ZWrite", Float) = 0
+        // 深度测试，默认小于等于
+        [Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("ZTest", Float) = 4
     }
 
     SubShader
@@ -83,7 +108,8 @@ Shader "ZZY/03.gpu_FFT_Ocean/FFTOcean"
             Tags { "LightMode" = "UniversalForward" }
 
             Blend SrcAlpha OneMinusSrcAlpha
-            ZWrite Off
+            ZWrite [_ZWrite]
+            ZTest [_ZTest]
             Cull Back
 
             HLSLPROGRAM
@@ -156,13 +182,13 @@ Shader "ZZY/03.gpu_FFT_Ocean/FFTOcean"
                 float largeWaveY : TEXCOORD4;
             };
 
+            // 距离越远，短波级联权重越低
             float SampleLod(float lengthScale, float viewDist)
             {
-                // 距离越大越裁掉短波长级联，减轻远处高频闪烁
                 return saturate(_LOD_scale * lengthScale / max(viewDist, 1.0));
             }
 
-            // ----- [Vertex] 三频带位移采样 -----
+            // 按距离权重采样三级联位移
             float3 SampleDisplacement(float2 worldXZ, float viewDist)
             {
                 float lod0 = SampleLod(_LengthScale0, viewDist);
@@ -175,13 +201,14 @@ Shader "ZZY/03.gpu_FFT_Ocean/FFTOcean"
                 return d;
             }
 
+            // 顶点：三级联位移、大浪高度和雾
             Varyings Vert(Attributes input)
             {
                 Varyings o;
                 float3 posWS = TransformObjectToWorld(input.positionOS.xyz);
                 float viewDist = length(_WorldSpaceCameraPos - posWS);
                 float3 displacement = SampleDisplacement(posWS.xz, viewDist);
-                // 大尺度级联高度：用于 SSS 与浪尖白沫（相对细浪的额外抬升）
+                // 大浪高度，留给次表面和浪尖泡沫
                 float largeY = SAMPLE_TEXTURE2D_LOD(_Displacement_c0, sampler_Displacement_c0, posWS.xz / _LengthScale0, 0).y
                     * SampleLod(_LengthScale0, viewDist);
                 posWS += displacement;
@@ -194,7 +221,7 @@ Shader "ZZY/03.gpu_FFT_Ocean/FFTOcean"
                 return o;
             }
 
-            // ----- [Normal] 由导数图重建坡度法线（gasgiant Ocean.shader） -----
+            // 用导数图重建坡度法线
             float3 SampleNormal(float2 worldXZ, float viewDist)
             {
                 float lod1 = SampleLod(_LengthScale1, viewDist);
@@ -206,8 +233,7 @@ Shader "ZZY/03.gpu_FFT_Ocean/FFTOcean"
                 return normalize(float3(-slope.x, 1.0, -slope.y));
             }
 
-            // ----- [Whitecaps] Tessendorf：J 变低表示水平位移折叠 → 浪尖破碎 -----
-            // Turbulence 存的是累积后的 J（平静≈高，折叠≈低）
+            // 雅可比变低时产生破碎白沫
             float SampleJacobianFoam(float2 worldXZ, float viewDist)
             {
                 float lod1 = SampleLod(_LengthScale1, viewDist);
@@ -219,7 +245,7 @@ Shader "ZZY/03.gpu_FFT_Ocean/FFTOcean"
                 return saturate((-j + _FoamBias) * _FoamScale);
             }
 
-            // 四方连续 fBm+Worley 噪声：双层错速采样，打破单贴图周期感
+            // 两层错速噪声，打破泡沫的重复感
             float SampleLaceNoise(float2 worldXZ)
             {
                 float2 nUV0 = worldXZ * _FoamNoiseScale + _Time.y * float2(0.018, 0.012);
@@ -230,6 +256,7 @@ Shader "ZZY/03.gpu_FFT_Ocean/FFTOcean"
                 return saturate(n0 * 0.45 + n1 * 0.35 + n2 * 0.2);
             }
 
+            // 片元：水色、折射、光照、白沫和雾
             half4 Frag(Varyings i) : SV_Target
             {
                 float2 screenUV = i.screenPos.xy / max(i.screenPos.w, 1e-5);
@@ -237,7 +264,7 @@ Shader "ZZY/03.gpu_FFT_Ocean/FFTOcean"
                 float3 N = SampleNormal(worldXZ, i.viewDist);
                 float3 V = normalize(_WorldSpaceCameraPos - i.positionWS);
 
-                // ----- [Depth] 场景水深；无海底时用 DeepDistance 回退（开放洋面） -----
+                // 场景水深，没有海底时回退到深水距离
                 float rawDepth = SampleSceneDepth(screenUV);
                 float sceneZ = LinearEyeDepth(rawDepth, _ZBufferParams);
                 float surfaceZ = LinearEyeDepth(i.positionCS.z / i.positionCS.w, _ZBufferParams);
@@ -246,7 +273,7 @@ Shader "ZZY/03.gpu_FFT_Ocean/FFTOcean"
                 if (!hasSeabed)
                     waterDepth = _DeepDistance * 0.65;
 
-                // ----- [Albedo] 浅→中→深水色 + Beer 吸收 + 法线折射 -----
+                // 深浅水色、比尔吸收和法线折射
                 float shallowT = saturate(waterDepth / max(_ShallowDistance, 1e-3));
                 float deepT = saturate(waterDepth / max(_DeepDistance, 1e-3));
                 float3 waterCol = lerp(_OceanColorShallow.rgb, _OceanColorMid.rgb, shallowT);
@@ -257,7 +284,7 @@ Shader "ZZY/03.gpu_FFT_Ocean/FFTOcean"
                 float absorb = saturate(1.0 - exp(-waterDepth * _Absorption * 0.15));
                 float3 baseCol = lerp(sceneColor, waterCol, absorb);
 
-                // ----- [Lighting] 主光阴影 · Fresnel 天空 · Blinn · SSS -----
+                // 菲涅尔天空反射、高光和次表面
                 float4 shadowCoord = TransformWorldToShadowCoord(i.positionWS);
                 Light mainLight = GetMainLight(shadowCoord);
                 float3 L = mainLight.direction;
@@ -277,16 +304,16 @@ Shader "ZZY/03.gpu_FFT_Ocean/FFTOcean"
                 float back = pow(saturate(dot(V, -L + N * 0.2)), _SSSPower);
                 float3 sss = _SSSColor.rgb * back * _SSSIntensity * i.largeWaveY * mainLight.color;
 
-                // ----- [Whitecaps] Jacobian 折叠 + 波峰高度 + 絮状噪声 -----
+                // 折叠白沫、波峰高度和絮状噪声
                 float lace = SampleLaceNoise(worldXZ);
                 float whitecap = SampleJacobianFoam(worldXZ, i.viewDist);
                 float crest = saturate(i.largeWaveY * _CrestFoam);
-                crest = crest * crest; // 只强调尖峰
+                crest = crest * crest;
                 whitecap = saturate(whitecap + crest * 0.55);
-                whitecap *= lerp(0.2, 1.0, lace); // 非实心白片
+                whitecap *= lerp(0.2, 1.0, lace);
                 whitecap = smoothstep(0.12, 0.85, whitecap);
 
-                // 岸线接触泡沫：仅真实深度缓冲有海底时启用
+                // 只有真实海底深度时才加岸边泡沫
                 float contact = 0;
                 if (hasSeabed)
                 {
@@ -295,7 +322,8 @@ Shader "ZZY/03.gpu_FFT_Ocean/FFTOcean"
                 }
                 float foam = saturate(whitecap + contact);
 
-                specular *= 1.0 - foam * 0.75; // 泡沫区压高光
+                // 泡沫压暗高光，再混合反射、散射和雾
+                specular *= 1.0 - foam * 0.75;
 
                 float3 col = lerp(baseCol, reflectCol, fresnel * 0.85);
                 col += specular;

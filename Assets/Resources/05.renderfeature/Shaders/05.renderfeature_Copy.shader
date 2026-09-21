@@ -1,18 +1,23 @@
-// ============================================================
-// CustomPP_Copy.shader
-// 效果：全屏拷贝（中间缓冲 ping-pong 的起点）
-// ============================================================
 Shader "ZZY/05.renderfeature/Copy"
 {
     Properties
     {
+        // 源颜色贴图
         _MainTex ("Source", 2D) = "white" {}
+
+        [Header(Depth)]
+        // 深度写入
+        [Enum(Off, 0, On, 1)] _ZWrite ("ZWrite", Float) = 0
+        // 深度测试
+        [Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("ZTest", Float) = 8
     }
 
     SubShader
     {
         Tags { "RenderPipeline" = "UniversalPipeline" }
-        ZWrite Off ZTest Always Cull Off
+        ZWrite [_ZWrite]
+        ZTest [_ZTest]
+        Cull Off
 
         Pass
         {
@@ -22,7 +27,7 @@ Shader "ZZY/05.renderfeature/Copy"
             #pragma fragment Frag
             #include "Library/CustomPPCommon.hlsl"
 
-            // 原样输出源颜色
+            // 全屏拷贝
             float4 Frag(PPVaryings i) : SV_Target
             {
                 return float4(SampleSource(i.uv), 1);

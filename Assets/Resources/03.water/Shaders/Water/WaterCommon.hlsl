@@ -9,8 +9,6 @@
 #include "GerstnerWaves.hlsl"
 #include "WaterLighting.hlsl"
 
-// 顶点输入输出。波浪位移后的世界坐标和波浪前的屏幕坐标分开保存，折射和 WaterFX 要用后者。
-
 struct WaterVertexInput
 {
 	float4	vertex 					: POSITION;
@@ -20,13 +18,13 @@ struct WaterVertexInput
 
 struct WaterVertexOutput
 {
-	float4	uv 						: TEXCOORD0;	// xy 几何 UV，zw 世界水平 UV
+	float4	uv 						: TEXCOORD0;
 	float3	posWS					: TEXCOORD1;
 	half3 	normal 					: NORMAL;
 	float3 	viewDir 				: TEXCOORD2;
-	float3	preWaveSP 				: TEXCOORD3;	// 波浪位移前的屏幕坐标
-	half2 	fogFactorNoise          : TEXCOORD4;	// x 雾，y 噪声
-	float4	additionalData			: TEXCOORD5;	// x 视线拉伸，y 到相机距离，z 归一化波高，w 水平位移
+	float3	preWaveSP 				: TEXCOORD3;
+	half2 	fogFactorNoise          : TEXCOORD4;
+	float4	additionalData			: TEXCOORD5;
 	half4	shadowCoord				: TEXCOORD6;
 
 	float4	clipPos					: SV_POSITION;
@@ -34,9 +32,10 @@ struct WaterVertexOutput
 	UNITY_VERTEX_OUTPUT_STEREO
 };
 
-// 把 WaterFX 的法线、泡沫、位移分三块画出来，只给调试用
+// 把水面特效的法线、泡沫和位移分成三块显示
 half3 DebugWaterFX(half3 input, half4 waterFX, half screenUV)
 {
+    // 按屏幕位置切成法线、泡沫和位移三块
     input = lerp(input, half3(waterFX.y, 1, waterFX.z), saturate(floor(screenUV + 0.7)));
     input = lerp(input, waterFX.xxx, saturate(floor(screenUV + 0.5)));
     half3 disp = lerp(0, half3(1, 0, 0), saturate((waterFX.www - 0.5) * 4));
@@ -45,23 +44,25 @@ half3 DebugWaterFX(half3 input, half4 waterFX, half screenUV)
     return input;
 }
 
-// 水色、水深、折射。吸收和散射都从同一张 ramp 的不同行取出。
-
+// 按水深从渐变图取出散射色
 half3 Scattering(half depth)
 {
 	return SAMPLE_TEXTURE2D(_AbsorptionScatteringRamp, sampler_AbsorptionScatteringRamp, half2(depth, 0.375h)).rgb;
 }
 
+// 按水深从渐变图取出吸收色
 half3 Absorption(half depth)
 {
 	return SAMPLE_TEXTURE2D(_AbsorptionScatteringRamp, sampler_AbsorptionScatteringRamp, half2(depth, 0.0h)).rgb;
 }
 
+// 把深度缓冲换成视线深度，并保留原始深度
 float2 AdjustedDepth(half2 uvs, half4 additionalData)
 {
 	float rawD = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, sampler_ScreenTextures_linear_clamp, uvs);
 	float d = LinearEyeDepth(rawD, _ZBufferParams);
 
+	// 反向深度缓冲时不再额外平移
 #if UNITY_REVERSED_Z
 	float offset = 0;
 #else
@@ -71,21 +72,25 @@ float2 AdjustedDepth(half2 uvs, half4 additionalData)
  	return float2(d * additionalData.x - additionalData.y, (rawD * -_ProjectionParams.x) + offset);
 }
 
+// 用水深图还原该点的水深
 float WaterTextureDepth(float3 posWS)
 {
     return (1 - SAMPLE_TEXTURE2D_LOD(_WaterDepthMap, sampler_WaterDepthMap_linear_clamp, posWS.xz * 0.002 + 0.5, 1).r) * (_MaxDepth + _VeraslWater_DepthCamParams.x) - _VeraslWater_DepthCamParams.x;
 }
 
-// 正交水深图还原的水深。x 是视线深度，y 是岸边水深
+// 视线深度和岸边水深
 float3 WaterDepth(float3 posWS, half4 additionalData, half2 screenUVs)
 {
 	float3 outDepth = 0;
+	// 屏幕深度得到视线方向的水深
 	outDepth.xz = AdjustedDepth(screenUVs, additionalData);
+	// 正交水深图得到岸边的垂直水深
 	float wd = WaterTextureDepth(posWS);
 	outDepth.y = wd + posWS.y;
 	return outDepth;
 }
 
+// 采样扭曲后的不透明画面，再乘吸收色
 half3 Refraction(half2 distortion, half depth, real depthMulti)
 {
 	half3 output = SAMPLE_TEXTURE2D_LOD(_CameraOpaqueTexture, sampler_CameraOpaqueTexture_linear_clamp, distortion, depth * 0.25).rgb;
@@ -93,6 +98,7 @@ half3 Refraction(half2 distortion, half depth, real depthMulti)
 	return output;
 }
 
+// 用法线在屏幕上偏移折射坐标
 half2 DistortionUVs(half depth, float3 normalWS)
 {
     half3 viewNormal = mul((float3x3)GetWorldToHClipMatrix(), -normalWS).xyz;
@@ -100,6 +106,7 @@ half2 DistortionUVs(half depth, float3 normalWS)
     return viewNormal.xz * saturate((depth) * 0.005);
 }
 
+// 打包视线拉伸、相机距离、波高和水平位移
 half4 AdditionalData(float3 postionWS, WaveStruct wave)
 {
     half4 data = half4(0.0, 0.0, 0.0, 0.0);
@@ -111,6 +118,7 @@ half4 AdditionalData(float3 postionWS, WaveStruct wave)
 	return data;
 }
 
+// 顶点波浪：滚动坐标、浅水抬高、波浪位移和远处法线
 WaterVertexOutput WaveVertexOperations(WaterVertexOutput input)
 {
 #ifdef _STATIC_SHADER
@@ -122,7 +130,7 @@ WaterVertexOutput WaveVertexOperations(WaterVertexOutput input)
     input.normal = float3(0, 1, 0);
 	input.fogFactorNoise.y = ((noise((input.posWS.xz * 0.5) + time) + noise((input.posWS.xz * 1) + time)) * 0.25 - 0.5) + 1;
 
-	// 两套滚动 UV，后面叠细法线
+	// 两套滚动坐标，后面叠细法线
     input.uv.zw = input.posWS.xz * 0.1h + time * 0.05h + (input.fogFactorNoise.y * 0.1);
     input.uv.xy = input.posWS.xz * 0.4h - time.xx * 0.1h + (input.fogFactorNoise.y * 0.2);
 
@@ -133,7 +141,7 @@ WaterVertexOutput WaveVertexOperations(WaterVertexOutput input)
     half waterDepth = WaterTextureDepth(input.posWS);
     input.posWS.y += pow(saturate((-waterDepth + 1.5) * 0.4), 2);
 
-	// Gerstner 位移和法线。水深越浅，水平位移越小
+	// 格斯特纳位移和法线，水越浅水平位移越小
 	WaveStruct wave;
 	SampleWaves(input.posWS, saturate((waterDepth * 0.1 + 0.05)), wave);
 	input.normal = wave.normal;
@@ -143,7 +151,7 @@ WaterVertexOutput WaveVertexOperations(WaterVertexOutput input)
 	input.posWS.y -= 0.5;
 #endif
 
-    // WaterFX 的 A 通道是局部上下位移，0.5 表示不动
+    // 特效贴图的透明通道做局部上下位移
 	half4 waterFX = SAMPLE_TEXTURE2D_LOD(_WaterFXMap, sampler_ScreenTextures_linear_clamp, screenUV.xy, 0);
 	input.posWS.y += waterFX.w * 2 - 1;
 
@@ -156,14 +164,14 @@ WaterVertexOutput WaveVertexOperations(WaterVertexOutput input)
 
 	input.additionalData = AdditionalData(input.posWS, wave);
 
-	// 远处法线拉平，避免远景闪烁
+	// 远处法线拉平，减轻远景闪烁
 	half distanceBlend = saturate(abs(length((_WorldSpaceCameraPos.xz - input.posWS.xz) * 0.005)) - 0.25);
 	input.normal = lerp(input.normal, half3(0, 1, 0), distanceBlend);
 
 	return input;
 }
 
-// 顶点只做对象到世界，波浪在 WaveVertexOperations 里完成
+// 顶点：变到世界坐标后交给波浪处理
 WaterVertexOutput WaterVertex(WaterVertexInput v)
 {
     WaterVertexOutput o;
@@ -178,7 +186,7 @@ WaterVertexOutput WaterVertex(WaterVertexInput v)
     return o;
 }
 
-// 片元：细法线、折射、菲涅尔、次表面、泡沫、高光，最后和反射合成
+// 片元：细法线、折射、菲涅尔、次表面、泡沫和高光
 half4 WaterFragment(WaterVertexOutput IN) : SV_Target
 {
 	UNITY_SETUP_INSTANCE_ID(IN);
@@ -190,7 +198,7 @@ half4 WaterFragment(WaterVertexOutput IN) : SV_Target
 	float3 depth = WaterDepth(IN.posWS, IN.additionalData, screenUV.xy);
 	half depthMulti = 1 / _MaxDepth;
 
-    // 两层滚动法线叠到 Gerstner 法线上，浅水减弱，再加 WaterFX 法线
+    // 两层滚动法线叠到波浪法线上，浅水减弱，再加特效法线
 	half2 detailBump1 = SAMPLE_TEXTURE2D(_SurfaceMap, sampler_SurfaceMap, IN.uv.zw).xy * 2 - 1;
 	half2 detailBump2 = SAMPLE_TEXTURE2D(_SurfaceMap, sampler_SurfaceMap, IN.uv.xy).xy * 2 - 1;
 	half2 detailBump = (detailBump1 + detailBump2 * 0.5) * saturate(depth.x * 0.25 + 0.25);
@@ -199,7 +207,7 @@ half4 WaterFragment(WaterVertexOutput IN) : SV_Target
 	IN.normal += half3(1-waterFX.y, 0.5h, 1-waterFX.z) - 0.5;
 	IN.normal = normalize(IN.normal);
 
-    // 用法线偏移不透明贴图 UV。若偏到水面上，退回原 UV
+    // 用法线偏移不透明画面，偏到水面以上就退回原位置
 	half2 distortion = DistortionUVs(depth.x, IN.normal);
 	distortion = screenUV.xy + distortion;
 	float d = depth.x;
@@ -213,12 +221,12 @@ half4 WaterFragment(WaterVertexOutput IN) : SV_Target
     half shadow = SoftShadows(screenUV, IN.posWS, IN.viewDir.xyz, depth.x);
     half3 GI = SampleSH(IN.normal);
 
-    // 次表面：天顶光加上逆光方向的浪尖透光
+    // 次表面：天顶光，加上逆光时的浪尖透光
     half3 directLighting = dot(mainLight.direction, half3(0, 1, 0)) * mainLight.color;
     directLighting += saturate(pow(dot(IN.viewDir, -mainLight.direction) * IN.additionalData.z, 3)) * 5 * mainLight.color;
     half3 sss = directLighting * shadow + GI;
 
-	// 泡沫来自三处：浪尖、岸线、WaterFX 的 R。贴图 RGB 是厚、中、薄
+	// 泡沫来自浪尖、岸线和特效贴图，贴图分厚、中、薄
 	half3 foamMap = SAMPLE_TEXTURE2D(_FoamMap, sampler_FoamMap,  IN.uv.zw).rgb;
 	half depthEdge = saturate(depth.x * 20);
 	half waveFoam = saturate(IN.additionalData.z - 0.75 * 0.5);
@@ -229,10 +237,12 @@ half4 WaterFragment(WaterVertexOutput IN) : SV_Target
 	half foamMask = saturate(length(foamMap * foamBlend) * 1.5 - 0.1);
 	half3 foam = foamMask.xxx * (mainLight.shadowAttenuation * mainLight.color + GI);
 
+    // 主光高光
     BRDFData brdfData;
     half alpha = 1;
     InitializeBRDFData(half3(0, 0, 0), 0, half3(1, 1, 1), 0.95, alpha, brdfData);
 	half3 spec = DirectBDRF(brdfData, IN.normal, mainLight.direction, IN.viewDir) * shadow * mainLight.color;
+	// 附加光补高光和次表面
 #ifdef _ADDITIONAL_LIGHTS
     uint pixelLightCount = GetAdditionalLightsCount();
     for (uint lightIndex = 0u; lightIndex < pixelLightCount; ++lightIndex)
@@ -247,13 +257,14 @@ half4 WaterFragment(WaterVertexOutput IN) : SV_Target
 
 	half3 reflection = SampleReflections(IN.normal, IN.viewDir.xyz, screenUV.xy, 0.0);
 
-	// 折射按水深乘吸收色，再按菲涅尔和反射混合，泡沫盖在最上面
+	// 折射乘吸收色，按菲涅尔混入反射，泡沫盖在最上面
 	half3 refraction = Refraction(distortion, depth.x, depthMulti);
 
 	half3 comp = lerp(lerp(refraction, reflection, fresnelTerm) + sss + spec, foam, foamMask);
 
     float fogFactor = IN.fogFactorNoise.x;
     comp = MixFog(comp, fogFactor);
+	// 调试模式只输出单项结果
 #if defined(_DEBUG_FOAM)
     return half4(foamMask.xxx, 1);
 #elif defined(_DEBUG_SSS)
@@ -275,4 +286,4 @@ half4 WaterFragment(WaterVertexOutput IN) : SV_Target
 #endif
 }
 
-#endif // WATER_COMMON_INCLUDED
+#endif

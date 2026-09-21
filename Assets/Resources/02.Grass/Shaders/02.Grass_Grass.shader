@@ -1,37 +1,46 @@
-// ============================================================================
-// ZZY/02.Grass/Grass — URP 草地（曲面细分 + 几何着色器）
-// ----------------------------------------------------------------------------
-// Pass：
-//   1. UniversalForward — 草叶着色 / 透光 / 接收阴影
-//   2. ShadowCaster    — 投影
-// 库：
-//   Library/CustomTessellation.hlsl — Hull / Domain
-//   Library/Grass.hlsl              — Geometry / 风 / 压草
-// 命名规范见 Library 文件头
-// ============================================================================
 Shader "ZZY/02.Grass/Grass"
 {
     Properties
     {
         [Header(Shading)]
+        // 草坪顶部颜色
         _TopColor("草坪顶部颜色（Top Color）", Color) = (1, 1, 1, 1)
+        // 草坪底部颜色
         _BottomColor("草坪底部颜色（Bottom Color）", Color) = (1, 1, 1, 1)
+        // 背光面额外透出的亮度
         _TranslucentGain("透光增益（Translucent Gain）", Range(0, 1)) = 0.5
 
+        // 草叶随机前倾的强度
         _BendRotationRandom("随机弯曲程度（Bend Rotation Random）", Range(0, 1)) = 0.2
 
         [Header(Blades)]
+        // 草根宽度
         _BladeWidth("草根宽度（Blade Width）", Float) = 0.05
+        // 草根宽度的随机幅度
         _BladeWidthRandom("草根宽度随机（Blade Width Random）", Float) = 0.02
+        // 草叶高度
         _BladeHeight("草高度（Blade Height）", Float) = 0.5
+        // 草叶高度的随机幅度
         _BladeHeightRandom("草高度随机（Blade Height Random）", Float) = 0.3
 
+        // 曲面细分密度
         _TessellationUniform("草坪密度（Tessellation Uniform）", Range(1, 64)) = 1
 
         [Header(Wind)]
+        // 风力噪声贴图
         _WindDistortionMap("风力噪声图（Wind Distortion Map）", 2D) = "white" {}
+        // 风力噪声的滚动速度
         _WindFrequency("摆动频率（Wind Frequency）", Vector) = (0.05, 0.05, 0, 0)
+        // 风力强度
         _WindStrength("风力强度（Wind Strength）", Float) = 1
+
+        [Header(Depth)]
+        // 是否写入深度
+        [Enum(Off, 0, On, 1)] _ZWrite ("ZWrite", Float) = 1
+        // 深度比较方式
+        [Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("ZTest", Float) = 4
+        // 阴影通道的颜色遮罩，默认不写颜色
+        [Enum(None, 0, RGB, 7, RGBA, 15)] _ColorMask ("ColorMask", Float) = 0
     }
 
     SubShader
@@ -44,13 +53,13 @@ Shader "ZZY/02.Grass/Grass"
         }
         Cull Off
 
-        // --------------------------------------------------------------------
-        // Forward：细分 → 几何挤出草叶 → 片元光照
-        // --------------------------------------------------------------------
         Pass
         {
             Name "GrassForward"
             Tags { "LightMode" = "UniversalForward" }
+
+            ZWrite [_ZWrite]
+            ZTest [_ZTest]
 
             HLSLPROGRAM
             #pragma target 4.6
@@ -69,24 +78,23 @@ Shader "ZZY/02.Grass/Grass"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "./Library/Grass.hlsl"
 
-            // ----------------------------------------------------------------
-            // 【效果】草叶着色：根→梢颜色渐变 + 半透光 Lambert + 环境光 + 阴影
-            // ----------------------------------------------------------------
+            // 草叶着色：根梢渐变、透光和阴影
             float4 Frag(GeometryVaryings input, half facing : VFACE) : SV_Target
             {
-                // 双面：背向翻转法线
+                // 背面翻转法线
                 float3 normalWS = facing > 0.0 ? input.normalWS : -input.normalWS;
 
+                // 读取主光阴影
                 Light mainLight = GetMainLight(input.shadowCoord);
                 half shadowAttenuation = mainLight.shadowAttenuation;
 
-                // 透光：给 NdotL 加 bias，让背光面也有一点亮度
+                // 背光面增加透光，并乘上阴影
                 float noL = saturate(saturate(dot(normalWS, _MainLightPosition.xyz)) + _TranslucentGain)
                     * shadowAttenuation;
 
+                // 环境光与主光混合，从根到梢插值颜色
                 float3 ambient = SampleSH(normalWS);
                 float3 lightIntensity = noL * _MainLightColor.rgb + ambient;
-                // uv.y：0 根部用 Bottom，1 梢部用 Top * 光照
                 float3 color = lerp(_BottomColor.rgb, _TopColor.rgb * lightIntensity, input.uv.y);
 
                 return float4(color, 1.0);
@@ -94,17 +102,14 @@ Shader "ZZY/02.Grass/Grass"
             ENDHLSL
         }
 
-        // --------------------------------------------------------------------
-        // ShadowCaster：写入 Shadowmap（平面基底投影；草叶几何不参与挤出）
-        // --------------------------------------------------------------------
         Pass
         {
             Name "ShadowCaster"
             Tags { "LightMode" = "ShadowCaster" }
         
-            ZWrite On
-            ZTest LEqual
-            ColorMask 0
+            ZWrite [_ZWrite]
+            ZTest [_ZTest]
+            ColorMask [_ColorMask]
             Cull Off
         
             HLSLPROGRAM
@@ -132,8 +137,10 @@ Shader "ZZY/02.Grass/Grass"
                 float4 positionCS : SV_POSITION;
             };
         
+            // 计算阴影投射用的裁剪位置
             float4 GetShadowPositionHClip(ShadowAttributes input)
             {
+                // 转到世界空间，并取光源方向
                 float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
                 float3 normalWS = TransformObjectToWorldNormal(input.normalOS);
         
@@ -143,6 +150,7 @@ Shader "ZZY/02.Grass/Grass"
                 float3 lightDirectionWS = _LightDirection;
             #endif
         
+                // 沿光照方向偏移，并夹在近裁剪面内
                 float4 positionCS = TransformWorldToHClip(ApplyShadowBias(positionWS, normalWS, lightDirectionWS));
             #if UNITY_REVERSED_Z
                 positionCS.z = min(positionCS.z, UNITY_NEAR_CLIP_VALUE);
@@ -152,6 +160,7 @@ Shader "ZZY/02.Grass/Grass"
                 return positionCS;
             }
         
+            // 阴影顶点输出裁剪位置
             ShadowVaryings ShadowPassVertex(ShadowAttributes input)
             {
                 ShadowVaryings output;
@@ -159,6 +168,7 @@ Shader "ZZY/02.Grass/Grass"
                 return output;
             }
         
+            // 阴影片元不写颜色
             half4 ShadowPassFragment(ShadowVaryings input) : SV_Target
             {
                 return 0;

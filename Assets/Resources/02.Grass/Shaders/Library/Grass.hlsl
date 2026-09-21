@@ -1,21 +1,11 @@
-// ============================================================================
-// Grass.hlsl — 草地几何生成 / 风力 / 交互压草
-// ----------------------------------------------------------------------------
-// 依赖：URP Lighting + CustomTessellation.hlsl
-// 命名规范见 CustomTessellation.hlsl 文件头
-// ============================================================================
 #ifndef DEMO_GRASS_LIBRARY_INCLUDED
 #define DEMO_GRASS_LIBRARY_INCLUDED
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 #include "CustomTessellation.hlsl"
 
-// 交互角色缓冲容量（与 C# GetPlayerPos 上传数组长度一致）
 #define GRASS_MAX_PLAYERS 100
 
-// ----------------------------------------------------------------------------
-// 材质属性（由 Properties / Material 注入）
-// ----------------------------------------------------------------------------
 float _BendRotationRandom;
 
 float _BladeHeight;
@@ -34,20 +24,14 @@ float4 _TopColor;
 float4 _BottomColor;
 float _TranslucentGain;
 
-// xyz = 角色世界坐标，w = 影响半径；由脚本 Material.SetVectorArray 写入
 float4 _Players[GRASS_MAX_PLAYERS];
 
-// ----------------------------------------------------------------------------
-// 工具：伪随机 [0,1]
-// ----------------------------------------------------------------------------
+// 由三维种子生成零到一的伪随机数
 float Hash01(float3 seed)
 {
     return frac(sin(dot(seed, float3(12.9898, 78.233, 53.539))) * 43758.5453);
 }
 
-// ----------------------------------------------------------------------------
-// Geometry → Fragment 插值数据
-// ----------------------------------------------------------------------------
 struct GeometryVaryings
 {
     float4 positionCS  : SV_POSITION;
@@ -56,27 +40,27 @@ struct GeometryVaryings
     float4 shadowCoord : TEXCOORD1;
 };
 
-// ----------------------------------------------------------------------------
-// 将对象空间草叶顶点打包为裁剪空间输出，并计算阴影坐标
-// ----------------------------------------------------------------------------
+// 把对象空间草叶顶点打包到裁剪空间
 GeometryVaryings PackGeometryVaryings(float3 positionOS, float2 uv, float3 normalOS)
 {
     GeometryVaryings output;
+    // 裁剪空间位置和纹理坐标
     output.positionCS = TransformObjectToHClip(positionOS);
     output.uv = uv;
 
+    // 世界空间阴影坐标和法线
     float3 positionWS = TransformObjectToWorld(positionOS);
     output.shadowCoord = TransformWorldToShadowCoord(positionWS);
     output.normalWS = TransformObjectToWorldNormal(normalOS);
     return output;
 }
 
-// ----------------------------------------------------------------------------
-// 求与输入向量垂直的单位向量（用于压草旋转轴）
-// ----------------------------------------------------------------------------
+// 求与输入方向垂直的单位向量
 float3 GetPerpendicularVector(float3 direction)
 {
+    // 先在水平面上取一个垂直方向
     float3 perpendicular = float3(-direction.y, direction.x, 0.0);
+    // 接近竖直时改用另一组轴
     if (length(perpendicular) < 0.001)
     {
         perpendicular = float3(0.0, -direction.z, direction.y);
@@ -84,9 +68,7 @@ float3 GetPerpendicularVector(float3 direction)
     return normalize(perpendicular);
 }
 
-// ----------------------------------------------------------------------------
-// 绕任意轴旋转的 3x3 矩阵（Rodrigues）
-// ----------------------------------------------------------------------------
+// 绕任意轴生成旋转矩阵
 float3x3 AngleAxis3x3(float angle, float3 axis)
 {
     float sine;
@@ -104,10 +86,7 @@ float3x3 AngleAxis3x3(float angle, float3 axis)
         t * x * z - sine * y,   t * y * z + sine * x, t * z * z + cosine);
 }
 
-// ----------------------------------------------------------------------------
-// 【效果】交互压草：在 _Players 中找最近（或已进入半径）的角色
-// 返回 float4(positionWS.xyz, radius)
-// ----------------------------------------------------------------------------
+// 在角色列表里找最近或已进入半径的人
 float4 FindNearestPlayer(float3 positionWS)
 {
     float4 nearest = float4(0.0, 0.0, 0.0, 0.0);
@@ -121,12 +100,13 @@ float4 FindNearestPlayer(float3 positionWS)
         float3 offset = playerPositionWS - positionWS;
         float distanceToPlayer = length(offset);
 
-        // 已在影响半径内：直接采用该角色
+        // 已在影响半径内，直接采用该角色
         if (distanceToPlayer < playerRadius)
         {
             return float4(playerPositionWS, playerRadius);
         }
 
+        // 否则记下更近的角色
         if (distanceToPlayer < minDistance)
         {
             minDistance = distanceToPlayer;
@@ -137,14 +117,11 @@ float4 FindNearestPlayer(float3 positionWS)
     return nearest;
 }
 
-// ----------------------------------------------------------------------------
-// 【效果】几何着色器：每个细分三角形挤出一片草叶（双底点 + 梢）
-// 叠加：随机朝向、自然弯曲、风力、角色挤压
-// ----------------------------------------------------------------------------
+// 由细分三角形挤出一片草叶
 [maxvertexcount(3)]
 void GrassGeometry(triangle TessVaryings input[3], inout TriangleStream<GeometryVaryings> triangleStream)
 {
-    // ---- 以三角形第一个顶点为草根，构建 TBN（切线空间 → 对象空间）----
+    // 以第一个顶点为草根，搭建切线到对象空间的矩阵
     float3 positionOS = input[0].positionOS.xyz;
     float3 normalOS = input[0].normalOS;
     float4 tangentOS = input[0].tangentOS;
@@ -155,19 +132,19 @@ void GrassGeometry(triangle TessVaryings input[3], inout TriangleStream<Geometry
         tangentOS.y, bitangentOS.y, normalOS.y,
         tangentOS.z, bitangentOS.z, normalOS.z);
 
-    // ---- 随机朝向（绕法线）+ 随机前倾弯曲 ----
+    // 随机绕法线朝向，并随机向前弯曲
     float3x3 facingRotationMatrix = AngleAxis3x3(Hash01(positionOS) * TWO_PI, float3(0.0, 0.0, 1.0));
     float3x3 bendRotationMatrix = AngleAxis3x3(
         Hash01(positionOS.zzx) * _BendRotationRandom * PI * 0.5,
         float3(-1.0, 0.0, 0.0));
 
-    // ---- 风力：世界 XZ 采样噪声图，随时间滚动 ----
+    // 按世界水平位置采样随时间滚动的风力
     float3 positionWS = TransformObjectToWorld(positionOS);
     float2 windUV = positionWS.xz * _WindDistortionMap_ST.xy
         + _WindDistortionMap_ST.zw
         + _WindFrequency * _Time.y;
 
-    // ---- 角色挤压：靠近时绕垂直于角色方向的轴倾倒 ----
+    // 靠近角色时绕垂直轴倾倒
     float4 nearestPlayer = FindNearestPlayer(positionWS);
     float3 playerPositionWS = nearestPlayer.xyz;
     float playerRadius = nearestPlayer.w;
@@ -179,6 +156,7 @@ void GrassGeometry(triangle TessVaryings input[3], inout TriangleStream<Geometry
     float playerBend = max(playerRadius - playerDistance, 0.0);
     float3x3 playerRotationMatrix = AngleAxis3x3(PI * playerBend, playerAxis);
 
+    // 把风力噪声变成绕轴旋转
     float2 windSample = (SAMPLE_TEXTURE2D_LOD(_WindDistortionMap, sampler_WindDistortionMap, windUV, 0).xy * 2.0 - 1.0)
         * _WindStrength;
     float3 windAxis = float3(windSample.x, windSample.y, 0.0);
@@ -186,20 +164,21 @@ void GrassGeometry(triangle TessVaryings input[3], inout TriangleStream<Geometry
     windAxis = windLength > 1e-4 ? windAxis / windLength : float3(1.0, 0.0, 0.0);
     float3x3 windRotationMatrix = AngleAxis3x3(PI * windSample.x, windAxis);
 
-    // 梢部：风 + 角色 + 朝向 + 弯曲；根部：仅朝向，避免根部滑动
+    // 梢部叠加风、挤压和弯曲，根部只保留朝向
     float3x3 tipTransform = mul(
         mul(mul(mul(tangentToObject, windRotationMatrix), playerRotationMatrix), facingRotationMatrix),
         bendRotationMatrix);
     float3x3 rootTransform = mul(tangentToObject, facingRotationMatrix);
 
+    // 随机草叶高度和宽度
     float bladeHeight = (Hash01(positionOS.zyx) * 2.0 - 1.0) * _BladeHeightRandom + _BladeHeight;
     float bladeWidth = (Hash01(positionOS.xzy) * 2.0 - 1.0) * _BladeWidthRandom + _BladeWidth;
 
-    // 切线空间中「朝下」的法线，变换后用于光照
+    // 切线空间朝下的法线，变换后用于光照
     float3 tangentNormal = float3(0.0, -1.0, 0.0);
     float3 rootNormalOS = mul(rootTransform, tangentNormal);
 
-    // 底部左右顶点
+    // 底部左右两个顶点
     triangleStream.Append(PackGeometryVaryings(
         positionOS + mul(rootTransform, float3(bladeWidth, 0.0, 0.0)),
         float2(0.0, 0.0),
@@ -217,4 +196,4 @@ void GrassGeometry(triangle TessVaryings input[3], inout TriangleStream<Geometry
         tipNormalOS));
 }
 
-#endif // DEMO_GRASS_LIBRARY_INCLUDED
+#endif

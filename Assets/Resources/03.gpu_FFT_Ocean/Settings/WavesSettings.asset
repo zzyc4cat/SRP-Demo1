@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   g: 9.81
   depth: 20
-  lambda: 1.15
+  lambda: 1
   local:
     scale: 0.35
     windSpeed: 8

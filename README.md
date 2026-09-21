@@ -1,6 +1,6 @@
 # SRP Demo1
 
-Unity **2022.3.62f3 LTS** · **URP 14** 自定义渲染样例。
+**版本 1.0.1** · Unity **2022.3.62f3 LTS** · **URP 14** 自定义渲染样例。
 
 在 URP Forward 下用独立 Shader / Compute / RenderFeature 演示多类效果，便于学习与复盘。
 
@@ -10,6 +10,7 @@ Unity **2022.3.62f3 LTS** · **URP 14** 自定义渲染样例。
 
 | 项 | 值 |
 |----|-----|
+| 版本 | 1.0.1 |
 | 引擎 | Unity 2022.3.62f3 LTS |
 | 管线 | URP 14.0.12 |
 | 着色 | HLSL（URP `Core.hlsl` / `Lighting.hlsl` 等） |
@@ -25,13 +26,12 @@ Unity **2022.3.62f3 LTS** · **URP 14** 自定义渲染样例。
 | 03 | Gerstner 水面 | 叠加波 · 平面反射 · 岸线泡沫 · 焦散 | `Assets/Resources/03.water/` | `Assets/Scenes/03.Water.unity` |
 | 03 | FFT 海洋 | 三频带 JONSWAP + Stockham IFFT + Jacobian 白沫 | `Assets/Resources/03.gpu_FFT_Ocean/` | `Assets/Scenes/03.FFTOcean.unity` |
 | 04 | 毛发 | Shell Texturing + GPU Instancing | `Assets/Resources/04.Fur/` | `Assets/Scenes/04.Fur_Optimized.unity` |
-| 05 | 后处理 | 自定义 RenderFeature（非 Volume） | `Assets/Pipelines/Features/` · `Assets/Resources/05.renderfeature/` | `Assets/Scenes/05.PostProcessing.unity` |
+| 05 | 后处理 | 自定义 RenderFeature（非 Volume） | `Assets/Resources/05.renderfeature/` | `Assets/Scenes/05.PostProcessing.unity` |
 | 06 | 特效 | 流光 · 管道 · 溶解 · 真实火焰 · 护盾 | `Assets/Resources/06.effect/` | `Assets/Scenes/06.effect_*.unity`（5 个） |
 | 07 | PBR 物体 | glTF Metal-Rough BRDF · Specular / Normal / Transmission | `Assets/Resources/07.PBR_object/` | `Assets/Scenes/07.PBR_object.unity` |
 
 **技术详解 → [Assets/README.md](Assets/README.md)**  
-**特效包说明 → [Assets/Resources/06.effect/README.md](Assets/Resources/06.effect/README.md)**  
-**PBR BRDF 展示 → [Assets/Resources/07.PBR_object/README.md](Assets/Resources/07.PBR_object/README.md)**
+各场景细则在对应资源目录的 `场景名_ReadMe.md`。
 
 ---
 
@@ -64,8 +64,9 @@ Assets/
 │   ├── 04.Fur/                # Shell 毛发
 │   ├── 05.renderfeature/      # 后处理 Shader
 │   ├── 06.effect/             # 特效（流光 / 管 / 溶解 / 火 / 护盾）
-│   └── 07.PBR_object/         # glTF PBR / BRDF 展示
-├── Pipelines/Features/        # 后处理 Feature / Pass / Manager
+│   ├── 07.PBR_object/         # glTF PBR / BRDF 展示
+│   ├── 05.renderfeature/Scripts/  # 后处理 Feature / Pass / Manager
+│   └── Pipelines/             # URP 资源
 ├── Editor/FFTOceanDemoSetup.cs # 03 海洋场景 / 泡沫噪声
 ├── Editor/EffectDemoSetup.cs  # 06.effect 贴图 / 材质工具
 ├── Editor/PBRObjectDemoSetup.cs # 07.PBR 场景一键搭建
@@ -83,7 +84,7 @@ Assets/
    - 场景中有 `CustomPostProcessManager`
    - 相机关闭内置 Post-processing，并开启深度纹理  
    - 菜单：`SRP Demo → Post Processing → Install Custom RenderFeature`
-4. **护盾**场景需相机开启深度纹理（场景已配置）；Play 后左键点击护盾看涟漪。
+4. **护盾**场景需相机开启深度纹理（场景已配置）。溶解用材质上的 Dissolve Amount，两团流光关于球心对称。
 5. **PBR**：打开 `07.PBR_object`；重建用 `SRP Demo → PBR Object → Setup Scene`。
 
 ---
@@ -93,11 +94,8 @@ Assets/
 | 文档 | 内容 |
 |------|------|
 | [README.md](README.md)（本页） | 工程入口、模块索引、快速开始 |
-| [Assets/README.md](Assets/README.md) | 各模块完整技术总结 |
-| [Assets/Resources/06.effect/README.md](Assets/Resources/06.effect/README.md) | 特效 5 件套资源与用法 |
-| [Assets/Resources/07.PBR_object/README.md](Assets/Resources/07.PBR_object/README.md) | glTF PBR / BRDF 测试场景说明 |
-| [Assets/Resources/04.Fur/README.md](Assets/Resources/04.Fur/README.md) | 毛发目录与使用说明 |
-| [Assets/Pipelines/Features/README_CustomPP.md](Assets/Pipelines/Features/README_CustomPP.md) | 后处理效果链速查 |
+| [Assets/README.md](Assets/README.md) | 按编号排列的效果概括 |
+| `Assets/Resources/<编号>/场景名_ReadMe.md` | 对应场景的技术栈 |
 
 ---
 

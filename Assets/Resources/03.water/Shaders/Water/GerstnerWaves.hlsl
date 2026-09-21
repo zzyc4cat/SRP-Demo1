@@ -5,17 +5,17 @@ uniform uint 	_WaveCount;
 
 struct Wave
 {
-	float amplitude; // 波高
-	float direction; // 相对 +Z 的角度
-	float wavelength; // 波长
-	float2 origin; // 全向波原点
-	float omni; // 1 全向，0 方向
+	float amplitude;
+	float direction;
+	float wavelength;
+	float2 origin;
+	float omni;
 };
 
 #if defined(USE_STRUCTURED_BUFFER)
 StructuredBuffer<Wave> _WaveDataBuffer;
 #else
-half4 waveData[20]; // 0-9 振幅方向波长全向，10-19 原点 xy
+half4 waveData[20];
 #endif
 
 struct WaveStruct
@@ -24,7 +24,7 @@ struct WaveStruct
 	float3 normal;
 };
 
-// 单条波：余弦推水平，正弦抬高度，法线用偏导。高度按波数均分，避免叠太高
+// 单条格斯特纳波的水平推移、高度和法线
 WaveStruct GerstnerWave(half2 pos, float waveCountMulti, half amplitude, half direction, half wavelength, half omni, half2 omniPos)
 {
 	WaveStruct waveOut;
@@ -34,12 +34,14 @@ WaveStruct GerstnerWave(half2 pos, float waveCountMulti, half amplitude, half di
 	float time = _Time.y;
 #endif
 
+	// 波数、波速和陡度，高度会按波数均分
 	half3 wave = 0;
 	half w = 6.28318 / wavelength;
 	half wSpeed = sqrt(9.8 * w);
 	half peak = 1.5;
 	half qi = peak / (amplitude * w * _WaveCount);
 
+	// 方向波和全向波合成传播方向
 	direction = radians(direction);
 	half2 dirWaveInput = half2(sin(direction), cos(direction)) * (1 - omni);
 	half2 omniWaveInput = (pos - omniPos) * omni;
@@ -51,9 +53,11 @@ WaveStruct GerstnerWave(half2 pos, float waveCountMulti, half amplitude, half di
 	half cosCalc = cos(calc);
 	half sinCalc = sin(calc);
 
+	// 余弦推开水平位置，正弦抬起波高
 	wave.xz = qi * amplitude * windDir.xy * cosCalc;
 	wave.y = ((sinCalc * amplitude)) * waveCountMulti;
 
+	// 用偏导得到这条波的法线
 	half wa = w * amplitude;
 	half3 n = half3(-(windDir.xy * wa * cosCalc),
 					1-(qi * wa * sinCalc));
@@ -64,7 +68,7 @@ WaveStruct GerstnerWave(half2 pos, float waveCountMulti, half amplitude, half di
 	return waveOut;
 }
 
-// 把全部波的位移和法线加起来。opacity 在浅水里压低水平位移
+// 把所有波的位移和法线叠在一起
 inline void SampleWaves(float3 position, half opacity, out WaveStruct waveOut)
 {
 	half2 pos = position.xz;
@@ -73,6 +77,7 @@ inline void SampleWaves(float3 position, half opacity, out WaveStruct waveOut)
 	half waveCountMulti = 1.0 / _WaveCount;
 	half3 opacityMask = saturate(half3(3, 3, 1) * opacity);
 
+	// 逐条取样并累加
 	UNITY_LOOP
 	for(uint i = 0; i < _WaveCount; i++)
 	{
@@ -97,8 +102,9 @@ inline void SampleWaves(float3 position, half opacity, out WaveStruct waveOut)
 		waveOut.position += wave.position;
 		waveOut.normal += wave.normal;
 	}
+	// 浅水处压低水平位移，避免岸边网格被推穿
 	waveOut.position *= opacityMask;
 	waveOut.normal *= half3(opacity, 1, opacity);
 }
 
-#endif // GERSTNER_WAVES_INCLUDED
+#endif

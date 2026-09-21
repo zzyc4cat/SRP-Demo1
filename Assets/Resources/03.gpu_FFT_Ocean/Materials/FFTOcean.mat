@@ -86,6 +86,8 @@ Material:
     - _SSSPower: 4
     - _ShallowDistance: 13.98
     - _SpecularIntensity: 2.5
+    - _ZTest: 4
+    - _ZWrite: 0
     m_Colors:
     - _FoamColor: {r: 0.97, g: 0.99, b: 1, a: 1}
     - _OceanColorDeep: {r: 0.01, g: 0.1, b: 0.26, a: 1}

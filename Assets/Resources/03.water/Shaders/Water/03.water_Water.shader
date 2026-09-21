@@ -2,15 +2,25 @@ Shader "ZZY/03.water/Water"
 {
 	Properties
 	{
+		// 细波法线强度
 		_BumpScale("Detail Wave Amount", Range(0, 2)) = 0.2
+		// 阴影抖动图案
 		_DitherPattern ("Dithering Pattern", 2D) = "bump" {}
+		// 关闭时间，水面保持静止
 		[Toggle(_STATIC_SHADER)] _Static ("Static", Float) = 0
+		// 调试显示模式
 		[KeywordEnum(Off, SSS, Refraction, Reflection, Normal, Fresnel, WaterEffects, Foam, WaterDepth)] _Debug ("Debug mode", Float) = 0
+		[Header(Depth)]
+		// 深度写入，默认开启
+		[Enum(Off, 0, On, 1)] _ZWrite ("ZWrite", Float) = 1
+		// 深度测试，默认小于等于
+		[Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("ZTest", Float) = 4
 	}
 	SubShader
 	{
 		Tags { "RenderType"="Transparent" "Queue"="Transparent-100" "RenderPipeline" = "UniversalPipeline" }
-		ZWrite On
+		ZWrite [_ZWrite]
+		ZTest [_ZTest]
 
 		Pass
 		{
@@ -19,7 +29,6 @@ Shader "ZZY/03.water/Water"
 
 			HLSLPROGRAM
 			#pragma prefer_hlslcc gles
-			// 反射三选一；波浪数据走 StructuredBuffer 或数组；调试关键字互斥
 			#pragma shader_feature _REFLECTION_CUBEMAP _REFLECTION_PROBES _REFLECTION_PLANARREFLECTION
 			#pragma multi_compile _ USE_STRUCTURED_BUFFER
 			#pragma multi_compile _ _STATIC_SHADER
