@@ -1,0 +1,44 @@
+// =============================================================================
+// WavesTexturesMerger — IFFT 结果 → 位移 / 导数 / 湍流泡沫图
+// -----------------------------------------------------------------------------
+// [Displace]   λ·Dx, Dy, λ·Dz → Displacement
+// [Deriv]      坡度与曲率 → Derivatives（供法线重建）
+// [Whitecaps]  Tessendorf Jacobian J；低 J = 水平折叠 → 浪尖白沫累积
+// =============================================================================
+#pragma kernel FillResultTextures
+
+RWTexture2D<float3> Displacement;
+RWTexture2D<float4> Derivatives;
+RWTexture2D<float4> Turbulence;
+
+Texture2D<float2> Dx_Dz;
+Texture2D<float2> Dy_Dxz;
+Texture2D<float2> Dyx_Dyz;
+Texture2D<float2> Dxx_Dzz;
+
+float Lambda;
+float DeltaTime;
+
+// J = (1+λDxx)(1+λDzz) - (λDxz)^2
+// 平静海面 J≈1（高）；折叠时 J 下降甚至为负 → Turbulence 累积后供表面着色
+[numthreads(8, 8, 1)]
+void FillResultTextures(uint3 id : SV_DispatchThreadID)
+{
+	float2 DxDz = Dx_Dz[id.xy];
+	float2 DyDxz = Dy_Dxz[id.xy];
+	float2 DyxDyz = Dyx_Dyz[id.xy];
+	float2 DxxDzz = Dxx_Dzz[id.xy];
+
+	// ----- [Displace] -----
+	Displacement[id.xy] = float3(Lambda * DxDz.x, DyDxz.x, Lambda * DxDz.y);
+	// ----- [Deriv] -----
+	Derivatives[id.xy] = float4(DyxDyz, DxxDzz * Lambda);
+
+	// ----- [Whitecaps] Jacobian 累积 -----
+	float jacobian = (1.0 + Lambda * DxxDzz.x) * (1.0 + Lambda * DxxDzz.y)
+		- Lambda * Lambda * DyDxz.y * DyDxz.y;
+
+	float prev = Turbulence[id.xy].r;
+	float accum = prev + DeltaTime * 0.55 / max(jacobian, 0.35);
+	Turbulence[id.xy] = float4(min(jacobian, accum), jacobian, 0, 1);
+}

@@ -1,0 +1,61 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: FlowPipe
+  m_Shader: {fileID: 4800000, guid: 229327edb7d220647a8b01b84ca010ac, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _FlowMap:
+        m_Texture: {fileID: 2800000, guid: 7363a26e6d080f34bae90f01b5d0c1fe, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _CoreBoost: 2
+    - _DensityIntensity: 0.65
+    - _DensityPower: 1.6
+    - _FlowContrast: 0.9
+    - _FlowIntensity: 0.7
+    - _FlowPower: 1.8
+    - _FlowWidth: 0.25
+    - _InnerAlpha: 0.2
+    - _Layer2Intensity: 1
+    - _RimIntensity: 3
+    - _RimPower: 2.5
+    - _WarpStrength: 0.1
+    - _WaveAmp: 0.008
+    - _WaveAmp2: 0.003
+    - _WaveFreq: 5.5
+    - _WaveFreq2: 9.5
+    - _WaveSpeed: 1.8
+    m_Colors:
+    - _BaseColor: {r: 0.08, g: 0.42, b: 0.92, a: 0.36}
+    - _DeepColor: {r: 0.02, g: 0.16, b: 0.52, a: 1}
+    - _DensityColor: {r: 0.02, g: 0.18, b: 0.62, a: 1}
+    - _FlowColor: {r: 0.5, g: 0.95, b: 1.35, a: 1}
+    - _FlowScale: {r: 2.2, g: 1, b: 0, a: 0}
+    - _FlowSpeed: {r: 0, g: 0.28, b: 0, a: 0}
+    - _FlowTiling: {r: 2, g: 1.1, b: 0, a: 0}
+    - _HighlightColor: {r: 0.7, g: 0.96, b: 1.25, a: 1}
+    - _Layer2Speed: {r: 0.04, g: 0.9, b: 0, a: 0}
+    - _Layer2Tiling: {r: 3.2, g: 1.8, b: 0, a: 0}
+    - _RimColor: {r: 0.5, g: 0.95, b: 1.3, a: 1}
+  m_BuildTextureStacks: []

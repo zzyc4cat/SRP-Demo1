@@ -1,0 +1,181 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Furina_body
+  m_Shader: {fileID: 4800000, guid: 87a326aa7e818d24aac339b6cce6c4ac, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords:
+  - _CULL_OFF
+  - _DAYANDNIGHT_ON
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 1
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BumpMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailAlbedoMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DetailNormalMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Diffuse:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _EmissionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _LightMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MetalMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MetallicGlossMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _OcclusionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ParallaxMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Ramp:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _bumpMap:
+        m_Texture: {fileID: 2800000, guid: c6fe7b9e9e56a2a45a0e02831e21f523, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _diffuse:
+        m_Texture: {fileID: 2800000, guid: 19f7337ae47d25c49990c8969b8196bc, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _lightmap:
+        m_Texture: {fileID: 2800000, guid: 4e3ace5710de6334e88a14bef8bcb882, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _metalMap:
+        m_Texture: {fileID: 2800000, guid: 17f6ae7c87c28334a991fb3fc90711c4, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ramp:
+        m_Texture: {fileID: 2800000, guid: 82f0958a65b98a54982ecae7d17b1e04, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _AAA: 1.54
+    - _AlphaClip: 0
+    - _AlphaClipThreshold: 1
+    - _AlphaMode: 0
+    - _BBB: 1.98
+    - _BumpScale: 1
+    - _Cull: 0
+    - _Cutoff: 0.5
+    - _DetailNormalMapScale: 1
+    - _DstBlend: 0
+    - _EdgeLightIntensity: 0.02
+    - _FlickerSpeed: 0.8
+    - _FresnelPower: 1.7
+    - _GlossMapScale: 1
+    - _GlossStrength: 1
+    - _Glossiness: 0.5
+    - _GlossyReflections: 1
+    - _IsDaytime: 0
+    - _IsFace: 0
+    - _Metallic: 0
+    - _Mode: 0
+    - _OcclusionStrength: 1
+    - _OutlineWidth: 0.4
+    - _Parallax: 0.02
+    - _RampBright: 0.99
+    - _RampCount0: 1
+    - _RampCount1: 4
+    - _RampCount2: 3
+    - _RampCount3: 5
+    - _RampCount4: 2
+    - _RampDark: 0.5
+    - _RampGrey: 1.14
+    - _RampIndex0: 1
+    - _RampIndex1: 4
+    - _RampIndex2: 3
+    - _RampIndex3: 5
+    - _RampIndex4: 2
+    - _RimLightLength: 2.16
+    - _RimLightWidth: 5.34
+    - _SmoothnessTextureChannel: 0
+    - _SpecularHighlights: 1
+    - _SrcBlend: 1
+    - _UVSec: 0
+    - _ZWrite: 1
+    - _bright: 0.99
+    - _bumpScale: 1
+    - _dark: 0.18
+    - _dayAndNight: 1
+    - _diffuseA: 2
+    - _edgeLight: 0.291
+    - _flicker: 0
+    - _fresnel: 1.5
+    - _genshinShader: 0
+    - _gloss: 1
+    - _glossStrength: 0.414
+    - _grey: 0.77
+    - _lightmapA0: 1
+    - _lightmapA1: 4
+    - _lightmapA2: 3
+    - _lightmapA3: 5
+    - _lightmapA4: 2
+    - _outline: 0.4
+    m_Colors:
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _GlowColor: {r: 1, g: 1, b: 1, a: 1}
+    - _MetalMapColor: {r: 1, g: 1, b: 1, a: 1}
+    - _OutlineColor0: {r: 1, g: 0, b: 0, a: 0}
+    - _OutlineColor1: {r: 0, g: 1, b: 0, a: 0}
+    - _OutlineColor2: {r: 0, g: 0, b: 1, a: 0}
+    - _OutlineColor3: {r: 1, g: 1, b: 0, a: 0}
+    - _OutlineColor4: {r: 0.5, g: 0, b: 1, a: 0}
+    - _glow: {r: 1.0586044, g: 1.0586044, b: 1.0586044, a: 1}
+    - _metalMapColor: {r: 0.37647063, g: 0.20784315, b: 0.09411766, a: 1}
+    - _outlineColor0: {r: 0.15691908, g: 0.20282537, b: 0.4811321, a: 1}
+    - _outlineColor1: {r: 0.20888443, g: 0.15117225, b: 0.2735849, a: 1}
+    - _outlineColor2: {r: 0.16200477, g: 0.17543477, b: 0.4339623, a: 0}
+    - _outlineColor3: {r: 0, g: 0, b: 0, a: 0}
+    - _outlineColor4: {r: 0.27058825, g: 0.20000002, b: 0.34901962, a: 0}
+  m_BuildTextureStacks: []

@@ -1,0 +1,77 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Shield
+  m_Shader: {fileID: 4800000, guid: b055ed4980ffc4b4695ce70a97540e62, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords:
+  - _USEHEXCENTER_ON
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BlinkMap:
+        m_Texture: {fileID: 2800000, guid: 6d7867920a31e2f4a9241e6e124df165, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _FlowMap:
+        m_Texture: {fileID: 2800000, guid: d46be6ce921532e4f894a8862a008ed6, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _HexMap:
+        m_Texture: {fileID: 2800000, guid: c8d07963d7f91564c96469fb66d527ba, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _NoiseMap:
+        m_Texture: {fileID: 2800000, guid: 6eb17be05a968624eb341b1403267ad3, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _BaseIntensity: 0
+    - _BlinkIntensity: 0.55
+    - _BlinkSpeed: 0.22
+    - _DissolveEdge: 0.35
+    - _DissolveThreshold: -1
+    - _EdgeIntensity: 0
+    - _EdgePower: 14
+    - _FlowIntensity: 1
+    - _HexFillIntensity: 0
+    - _HexInset: 0.025
+    - _HexLineIntensity: 3.6
+    - _HexLineSoft: 0.0012
+    - _HexLineWidth: 0.038
+    - _HitFadeDistance: 2.5
+    - _HitFadePower: 1.5
+    - _HitIntensity: 0.12
+    - _HitSpread: 0.8
+    - _RimIntensity: 0.7
+    - _RimPower: 2.8
+    - _UseHexCenter: 1
+    m_Colors:
+    - _BaseColor: {r: 0.015, g: 0.08, b: 0.28, a: 0.02}
+    - _DissolveEdgeColor: {r: 0.19999996, g: 1.5, b: 2.5000002, a: 1}
+    - _DissolvePos: {r: 0, g: 0, b: 0, a: 0}
+    - _EdgeColor: {r: 0.45, g: 1.3, b: 2, a: 1}
+    - _FlowColor: {r: 0.25, g: 0.85, b: 1.35, a: 1}
+    - _FlowSpeed: {r: 0.05, g: 0.2, b: 0, a: 0}
+    - _FlowTiling: {r: 3, g: 3, b: 0, a: 0}
+    - _HexFillColor: {r: 0.1, g: 0.5, b: 1, a: 1}
+    - _HexLineColor: {r: 0.5, g: 1.35, b: 2.1, a: 1}
+    - _HitColor: {r: 1.2, g: 2, b: 2.5000002, a: 1}
+    - _RimColor: {r: 0.3, g: 0.85, b: 1.5, a: 1}
+  m_BuildTextureStacks: []
