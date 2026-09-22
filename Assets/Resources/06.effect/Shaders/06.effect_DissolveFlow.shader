@@ -11,11 +11,13 @@ Shader "ZZY/06.effect/DissolveFlow"
         // 溶解进度。0 完整，1 按噪声全部溶解
         _DissolveAmount ("Dissolve Amount", Range(0,1)) = 0.35
         // 溶解边界亮边的宽度
-        _EdgeWidth ("Edge Width", Range(0.001, 0.5)) = 0.08
+        _EdgeWidth ("Edge Width", Range(0.001, 0.5)) = 0.16
+        // 溶解边界的额外柔化。越大前沿越虚
+        _EdgeSoft ("Edge Softness", Range(0.001, 0.5)) = 0.14
         // 溶解边界的发光颜色
-        _EdgeColor ("Edge Color", Color) = (0.2, 1.5, 2.5, 1)
+        _EdgeColor ("Edge Color", Color) = (0.35, 1.6, 2.4, 1)
         // 溶解边界的发光强度
-        _EdgeIntensity ("Edge Intensity", Float) = 3
+        _EdgeIntensity ("Edge Intensity", Float) = 2.1
         // 前沿流光的颜色
         _FlowColor ("Flow Color", Color) = (0.4, 1.2, 2.0, 1)
         // 流光贴图的平铺
@@ -35,8 +37,8 @@ Shader "ZZY/06.effect/DissolveFlow"
         // 自动溶解的速度
         _AnimateSpeed ("Animate Speed", Float) = 0.25
         [Header(Depth)]
-        // 是否写入深度
-        [Enum(Off, 0, On, 1)] _ZWrite ("ZWrite", Float) = 1
+        // 是否写入深度。软溶解默认关闭，避免硬深度轮廓
+        [Enum(Off, 0, On, 1)] _ZWrite ("ZWrite", Float) = 0
         // 深度比较。默认 LEqual
         [Enum(UnityEngine.Rendering.CompareFunction)] _ZTest ("ZTest", Float) = 4
     }
@@ -71,6 +73,7 @@ Shader "ZZY/06.effect/DissolveFlow"
                 half4 _BaseColor;
                 half _DissolveAmount;
                 half _EdgeWidth;
+                half _EdgeSoft;
                 half4 _EdgeColor;
                 half _EdgeIntensity;
                 half4 _FlowColor;
@@ -111,7 +114,7 @@ Shader "ZZY/06.effect/DissolveFlow"
                 return o;
             }
 
-            // 片元：噪声溶解、前沿流光、Fresnel 轮廓
+            // 片元：软溶解、前沿流光、Fresnel 轮廓
             half4 frag(Varyings i) : SV_Target
             {
                 float3 n = normalize(i.normalWS);
@@ -123,9 +126,22 @@ Shader "ZZY/06.effect/DissolveFlow"
                 if (_Animate > 0.5)
                     amount = saturate(0.5 + 0.5 * sin(_Time.y * _AnimateSpeed * 6.2831853));
 
-                float keep, edge;
-                EffectDissolve(noise, amount, _EdgeWidth, keep, edge);
-                clip(keep);
+                float d = (float)noise - (float)amount;
+                float aa = max(fwidth((float)noise) * 2.0, 1e-4);
+                float soft = max((float)_EdgeSoft, 0.02) + aa;
+                float band = max((float)_EdgeWidth, 0.04) + aa;
+
+                // 宽软透明度：从空洞一侧平滑淡到实体
+                half keep = smoothstep(-soft, soft * 2.2, d);
+
+                // 亮边：在阈值附近最亮，向内外两侧衰减
+                half edgeIn = 1.0 - smoothstep(0.0, band, max(d, 0.0));
+                half edgeOut = smoothstep(-soft * 0.85, soft * 0.35, d);
+                half edge = saturate(edgeIn * edgeOut);
+                edge = edge * edge * (3.0 - 2.0 * edge);
+
+                // 只丢掉几乎看不见的像素
+                clip(keep - 0.01);
 
                 // 前沿流光
                 float2 flowUV = EffectFlowUV(i.uv, _FlowTiling.xy, _FlowSpeed.xy, _Time.y);
@@ -134,12 +150,17 @@ Shader "ZZY/06.effect/DissolveFlow"
                 half rim = EffectFresnel(n, viewWS, _RimPower, _RimIntensity);
 
                 half3 col = _BaseColor.rgb;
-                col += _FlowColor.rgb * flow * _FlowIntensity;
-                col += _RimColor.rgb * rim;
-                // 溶解边界替换成亮边
-                col = lerp(col, _EdgeColor.rgb * _EdgeIntensity, saturate(edge));
+                col += _FlowColor.rgb * flow * _FlowIntensity * keep;
+                col += _RimColor.rgb * rim * keep;
 
-                half alpha = saturate(0.85 + rim * 0.2);
+                half3 edgeCol = _EdgeColor.rgb * _EdgeIntensity;
+                // 亮边软混，并在半透明带上铺一层光晕
+                half halo = saturate((1.0 - abs(d) / max(band + soft, 1e-4)));
+                halo = halo * halo;
+                col = lerp(col, edgeCol, edge * 0.8);
+                col += edgeCol * halo * 0.65;
+
+                half alpha = saturate(keep * (0.55 + edge * 0.45 + rim * 0.12));
                 return half4(col, alpha);
             }
             ENDHLSL

@@ -50,12 +50,20 @@ float EffectSoftClip(float value, float edgeWidth)
     return saturate(value / max(edgeWidth, 1e-4));
 }
 
-// 噪声和阈值比较。keep 大于 0 保留，edge 为溶解前沿的亮边
+// 噪声和阈值比较。keep 为软保留量（0~1），edge 为前沿亮边
 void EffectDissolve(float noise, float threshold, float edgeWidth, out float keep, out float edge)
 {
+    float band = max(edgeWidth, 1e-4);
+    // 按噪声在屏幕上的变化加一点抗锯齿，避免锯齿硬边
+    float aa = max(fwidth(noise) * 1.75, 1e-4);
+    float softBand = band + aa;
     float d = noise - threshold;
-    keep = d;
-    edge = 1.0 - saturate(d / max(edgeWidth, 1e-4));
+    // 跨过阈值时平滑淡出
+    keep = smoothstep(-softBand * 0.55, softBand * 0.75, d);
+    // 亮边集中在前沿，向两侧衰减，外沿更宽
+    float glow = 1.0 - smoothstep(0.0, softBand, max(d, 0.0));
+    glow *= smoothstep(-softBand * 0.45, softBand * 0.2, d);
+    edge = pow(saturate(glow), 1.35);
 }
 
 // 网格与场景深度越接近，返回值越大。用于接触处的接缝光
