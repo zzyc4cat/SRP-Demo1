@@ -1,6 +1,6 @@
 # SRP Demo1
 
-**版本 1.0.1** · Unity **2022.3.62f3 LTS** · **URP 14** 自定义渲染样例。
+**版本 1.0.2** · Unity **2022.3.62f3 LTS** · **URP 14** 自定义渲染样例。
 
 在工作与学习中所使用和制作的各类unity效果留档。
 
@@ -10,7 +10,7 @@
 
 | 项 | 值 |
 |----|-----|
-| 版本 | 1.0.1 |
+| 版本 | 1.0.2 |
 | 引擎 | Unity 2022.3.62f3 LTS |
 | 管线 | URP 14.0.12 |
 | 着色 | HLSL（URP `Core.hlsl` / `Lighting.hlsl` 等） |
@@ -41,7 +41,7 @@
 |------|------|--------|
 | 流光 | `06.effect_FlowTranslucent` | `ZZY/06.effect/FlowTranslucent` |
 | 管道流水 | `06.effect_FlowPipe` | `FlowPipe` + `FlowPipeGlass` |
-| 溶解 | `06.effect_DissolveFlow` | `ZZY/06.effect/DissolveFlow` |
+| 溶解 | `06.effect_DissolveFlow` | `ZZY/06.effect/DissolveFlow`（软边溶解） |
 | 真实火焰 | `06.effect_FireRealistic` | `ZZY/06.effect/FireRealistic` |
 | 护盾 | `06.effect_Shield` | `ZZY/06.effect/Shield` |
 
@@ -95,7 +95,7 @@ Assets/
 |------|------|
 | [README.md](README.md)（本页） | 工程入口、模块索引、快速开始 |
 | [Assets/README.md](Assets/README.md) | 按编号排列的效果概括 |
-| `Assets/Resources/<编号>/场景名_ReadMe.md` | 对应场景的技术栈 |
+| `Assets/Resources/<编号>/…_ReadMe.md` | 对应模块技术栈（06 合并为 `06.effect_ReadMe.md`） |
 
 ---
 
