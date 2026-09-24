@@ -115,16 +115,45 @@ Shader "ZZY/06.effect/DissolveFlow"
             }
 
             // 片元：软溶解、前沿流光、Fresnel 轮廓
-            half4 frag(Varyings i) : SV_Target
+            // facing：Cull Off 时区分正反面，固体端点只保留正面，避免极点双面叠色 residual
+            half4 frag(Varyings i, float facing : VFACE) : SV_Target
             {
                 float3 n = normalize(i.normalWS);
                 float3 viewWS = GetWorldSpaceNormalizeViewDir(i.positionWS);
 
                 // 溶解遮罩。可选按时间自动往复
-                half noise = SAMPLE_TEXTURE2D(_NoiseMap, sampler_NoiseMap, i.uv).r;
-                half amount = _DissolveAmount;
+                float amount = (float)_DissolveAmount;
                 if (_Animate > 0.5)
-                    amount = saturate(0.5 + 0.5 * sin(_Time.y * _AnimateSpeed * 6.2831853));
+                    amount = saturate(0.5 + 0.5 * sin(_Time.y * (float)_AnimateSpeed * 6.2831853));
+                amount = saturate(amount);
+
+                // 端点硬切：0 = 完整实体（无噪声/流光/亮边）；1 = 完全丢弃（无残留像素）
+                // 用 float 比较，避免 half 精度在滑条两端抖到中间分支
+                const float kEndpoint = 1e-4;
+
+                if (amount >= (1.0 - kEndpoint))
+                {
+                    discard;
+                    return half4(0, 0, 0, 0);
+                }
+
+                if (amount <= kEndpoint)
+                {
+                    // 只画正面，去掉溶解相关贡献，但保留表面流光
+                    if (facing < 0.0)
+                        discard;
+                    half rim = EffectFresnel(n, viewWS, _RimPower, _RimIntensity);
+                    float2 flowUV = EffectFlowUV(i.uv, _FlowTiling.xy, _FlowSpeed.xy, _Time.y);
+                    half flow = SAMPLE_TEXTURE2D(_FlowMap, sampler_FlowMap, flowUV).r;
+                    half3 solid = _BaseColor.rgb;
+                    solid += _FlowColor.rgb * flow * _FlowIntensity;
+                    solid += _RimColor.rgb * rim;
+                    return half4(solid, 1.0h);
+                }
+
+                half rim = EffectFresnel(n, viewWS, _RimPower, _RimIntensity);
+
+                half noise = SAMPLE_TEXTURE2D(_NoiseMap, sampler_NoiseMap, i.uv).r;
 
                 float d = (float)noise - (float)amount;
                 float aa = max(fwidth((float)noise) * 2.0, 1e-4);
@@ -146,8 +175,6 @@ Shader "ZZY/06.effect/DissolveFlow"
                 // 前沿流光
                 float2 flowUV = EffectFlowUV(i.uv, _FlowTiling.xy, _FlowSpeed.xy, _Time.y);
                 half flow = SAMPLE_TEXTURE2D(_FlowMap, sampler_FlowMap, flowUV).r;
-                // 外轮廓
-                half rim = EffectFresnel(n, viewWS, _RimPower, _RimIntensity);
 
                 half3 col = _BaseColor.rgb;
                 col += _FlowColor.rgb * flow * _FlowIntensity * keep;

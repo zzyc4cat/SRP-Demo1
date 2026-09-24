@@ -42,11 +42,13 @@ Material:
     - _Intensity: 2.4
     - _MidThreshold: 0.28
     - _Rows: 6
-    - _SidePinch: 0.55
+    - _SidePinch: 0.614
     - _SoftEdge: 0.12
     - _TimeOffset: 1.7
     - _VerticalScale: 0.92
     - _WispStrength: 0.45
+    - _ZTest: 4
+    - _ZWrite: 0
     m_Colors:
     - _BottomColor: {r: 1, g: 0.85, b: 0.24999997, a: 1}
     - _ColorBottom: {r: 1, g: 0.85, b: 0.24999997, a: 1}

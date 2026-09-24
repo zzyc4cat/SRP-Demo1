@@ -41,11 +41,13 @@ Material:
     - _RimIntensity: 3
     - _RimPower: 2.5
     - _WarpStrength: 0.1
-    - _WaveAmp: 0.008
-    - _WaveAmp2: 0.003
+    - _WaveAmp: 0.019
+    - _WaveAmp2: 0.0066
     - _WaveFreq: 5.5
     - _WaveFreq2: 9.5
-    - _WaveSpeed: 1.8
+    - _WaveSpeed: 2.93
+    - _ZTest: 4
+    - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 0.08, g: 0.42, b: 0.92, a: 0.36}
     - _DeepColor: {r: 0.02, g: 0.16, b: 0.52, a: 1}

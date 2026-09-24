@@ -575,9 +575,6 @@ public static class EffectDemoSetup
         sphere.transform.position = new Vector3(0, 1f, 0);
         sphere.transform.localScale = Vector3.one * 1.6f;
         sphere.GetComponent<Renderer>().sharedMaterial = mat;
-        var ctrl = sphere.AddComponent<DissolveFlowController>();
-        ctrl.targetMaterial = mat;
-        ctrl.animate = true;
         PlaceLabel("溶解流光 + 边缘光", new Vector3(0, 2.15f, 0));
         EnsureMainCamera(new Vector3(0, 1.25f, -3.5f), Quaternion.Euler(8, 0, 0));
         if (Camera.main != null) Camera.main.fieldOfView = 42f;
@@ -688,8 +685,7 @@ public static class EffectDemoSetup
             mc.sharedMesh = mf.sharedMesh;
         }
 
-        new GameObject("ShieldHitController").AddComponent<ShieldHitController>();
-        PlaceLabel("等尺寸六边形护盾（点击）", new Vector3(0, 2.45f, 0));
+        PlaceLabel("等尺寸六边形护盾", new Vector3(0, 2.45f, 0));
         FrameFocus(shield, cube);
         if (Camera.main != null)
         {

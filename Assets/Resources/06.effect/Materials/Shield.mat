@@ -46,7 +46,7 @@ Material:
     - _EdgeIntensity: 0.01
     - _EdgePower: 1.4
     - _FlowIntensity: 1
-    - _HexFillIntensity: 0
+    - _HexFillIntensity: 0.03
     - _HexInset: 0.025
     - _HexLineIntensity: 3.6
     - _HexLineSoft: 0.0012

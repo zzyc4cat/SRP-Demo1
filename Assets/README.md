@@ -1,9 +1,9 @@
-# SRP Demo1 — 在工作与学习中所使用和制作的各类unity效果留档
+﻿# SRP Demo1 — 在工作与学习中所使用和制作的各类unity效果留档
 
 | 项 | 说明 |
 |----|------|
 | 工程 | SRP Demo1 |
-| 版本 | 1.0.2 |
+| 版本 | 1.0.3 |
 | 引擎 | Unity 2022.3.62f3 LTS |
 | 管线 | URP 14.0.12，Forward |
 | 范围 | 01 角色 · 02 草地 · 03 水面 / FFT 海洋 · 04 毛发 · 05 后处理 · 06 特效 · 07 PBR 物体 |
@@ -23,6 +23,7 @@ Assets/
 │   ├── 05.renderfeature/
 │   ├── 06.effect/
 │   └── 07.PBR_object/
+├── Scripts/Common/            # 多场景复用演示脚本
 └── Scenes/
 ```
 

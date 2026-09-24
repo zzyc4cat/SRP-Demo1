@@ -55511,6 +55511,7 @@ GameObject:
   - component: {fileID: 1017609896}
   - component: {fileID: 1017609895}
   - component: {fileID: 1017609903}
+  - component: {fileID: 1017609904}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -55643,7 +55644,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1017609894}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 72ece51f2901e7445ab60da3685d6b5f, type: 3}
   m_Name: 
@@ -55670,6 +55671,25 @@ MonoBehaviour:
   m_CameraActivatedEvent:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &1017609904
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1017609894}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: acc5f583f5bc09840b8325e487a2df29, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  moveSpeed: 12
+  sprintMultiplier: 2.5
+  mouseSensitivity: 0.15
+  lockCursor: 1
+  pitchMin: -89
+  pitchMax: 89
+  disableCinemachineBrain: 1
 --- !u!1001 &1017823965
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -108596,7 +108616,7 @@ RenderTexture:
   m_TextureSettings:
     serializedVersion: 2
     m_FilterMode: 1
-    m_Aniso: 1
+    m_Aniso: 0
     m_MipBias: 0
     m_WrapU: 1
     m_WrapV: 1
@@ -118411,44 +118431,44 @@ MonoBehaviour:
   _depthTex: {fileID: 1884409832}
   bakedDepthTex: {fileID: 0}
   _waves:
-  - amplitude: 0.30540264
-    direction: -157.6966
-    wavelength: 3.9317474
+  - amplitude: 0.2835399
+    direction: -106.24301
+    wavelength: 4.290996
     origin:
       x: 0
       y: 0
     onmiDir: 0
-  - amplitude: 0.38381416
-    direction: -151.68127
-    wavelength: 5.0679083
+  - amplitude: 0.4462709
+    direction: -25.579346
+    wavelength: 6.7467303
     origin:
       x: 0
       y: 0
     onmiDir: 0
-  - amplitude: 0.56254816
-    direction: -248.20753
-    wavelength: 4.8436303
+  - amplitude: 0.47527894
+    direction: -113.82747
+    wavelength: 4.519071
     origin:
       x: 0
       y: 0
     onmiDir: 0
-  - amplitude: 0.5496996
-    direction: -157.03645
-    wavelength: 7.4353476
+  - amplitude: 0.50743747
+    direction: -48.051086
+    wavelength: 5.429784
     origin:
       x: 0
       y: 0
     onmiDir: 0
-  - amplitude: 0.600147
-    direction: -109.31301
-    wavelength: 9.009473
+  - amplitude: 0.71231645
+    direction: -15.240452
+    wavelength: 7.4515414
     origin:
       x: 0
       y: 0
     onmiDir: 0
-  - amplitude: 0.82138336
-    direction: -185.72478
-    wavelength: 14.354873
+  - amplitude: 0.6812595
+    direction: -6.4462833
+    wavelength: 7.4967833
     origin:
       x: 0
       y: 0

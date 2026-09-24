@@ -33,9 +33,9 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Animate: 1
+    - _Animate: 0
     - _AnimateSpeed: 0.25
-    - _DissolveAmount: 0.35
+    - _DissolveAmount: 0
     - _EdgeIntensity: 2.1
     - _EdgeSoft: 0.16
     - _EdgeWidth: 0.18

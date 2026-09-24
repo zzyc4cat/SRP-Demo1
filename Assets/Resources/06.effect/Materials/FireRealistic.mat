@@ -47,6 +47,8 @@ Material:
     - _TimeOffset: 0
     - _VerticalScale: 0.92
     - _WispStrength: 0.45
+    - _ZTest: 4
+    - _ZWrite: 0
     m_Colors:
     - _BottomColor: {r: 1, g: 0.85, b: 0.24999997, a: 1}
     - _ColorBottom: {r: 1, g: 0.85, b: 0.24999997, a: 1}

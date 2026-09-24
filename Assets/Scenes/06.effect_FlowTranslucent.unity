@@ -326,13 +326,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1003104051}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.1039482, y: -0, z: -0, w: 0.9945827}
-  m_LocalPosition: {x: 0, y: 1.46, z: -3.03}
+  m_LocalRotation: {x: 0.1976736, y: -0, z: -0, w: 0.98026794}
+  m_LocalPosition: {x: 0, y: 2.118, z: -2.801}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 11.933, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 22.802, y: 0, z: 0}
 --- !u!114 &1003104055
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -623,7 +623,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 98344421ac9a09c4db0bb0204a698645, type: 3}
       propertyPath: m_LocalRotation.w
-      value: -0.00000004371139
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 98344421ac9a09c4db0bb0204a698645, type: 3}
       propertyPath: m_LocalRotation.x
@@ -631,7 +631,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 98344421ac9a09c4db0bb0204a698645, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 98344421ac9a09c4db0bb0204a698645, type: 3}
       propertyPath: m_LocalRotation.z
@@ -672,8 +672,31 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 98344421ac9a09c4db0bb0204a698645, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1610976499}
   m_SourcePrefab: {fileID: 100100000, guid: 98344421ac9a09c4db0bb0204a698645, type: 3}
+--- !u!1 &1610976498 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 98344421ac9a09c4db0bb0204a698645, type: 3}
+  m_PrefabInstance: {fileID: 1610976497}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1610976499
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1610976498}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f3e45ac9c3a02043ac9f9c468bb06c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  degreesPerSecond: 30
+  clockwise: 1
+  worldSpace: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

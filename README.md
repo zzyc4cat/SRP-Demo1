@@ -1,6 +1,6 @@
-# SRP Demo1
+﻿# SRP Demo1
 
-**版本 1.0.2** · Unity **2022.3.62f3 LTS** · **URP 14** 自定义渲染样例。
+**版本 1.0.3** · Unity **2022.3.62f3 LTS** · **URP 14** 自定义渲染样例。
 
 在工作与学习中所使用和制作的各类unity效果留档。
 
@@ -10,7 +10,7 @@
 
 | 项 | 值 |
 |----|-----|
-| 版本 | 1.0.2 |
+| 版本 | 1.0.3 |
 | 引擎 | Unity 2022.3.62f3 LTS |
 | 管线 | URP 14.0.12 |
 | 着色 | HLSL（URP `Core.hlsl` / `Lighting.hlsl` 等） |
@@ -67,9 +67,8 @@ Assets/
 │   ├── 07.PBR_object/         # glTF PBR / BRDF 展示
 │   ├── 05.renderfeature/Scripts/  # 后处理 Feature / Pass / Manager
 │   └── Pipelines/             # URP 资源
-├── Editor/FFTOceanDemoSetup.cs # 03 海洋场景 / 泡沫噪声
-├── Editor/EffectDemoSetup.cs  # 06.effect 贴图 / 材质工具
-├── Editor/PBRObjectDemoSetup.cs # 07.PBR 场景一键搭建
+├── Scripts/Common/            # 多场景复用演示脚本（旋转 / 环绕 / 飞行相机等）
+├── Editor/                    # 场景搭建与资源工具
 └── Scenes/                    # 各模块演示场景
 ```
 
